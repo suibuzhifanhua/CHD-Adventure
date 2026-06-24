@@ -1,13 +1,3 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: a9133b47afebc18a000cbb433c522a27_8a4898ea6dfb11f1aa625254006c9bbf
-    ReservedCode1: d4mkzl0dRw1Z0pmoa64sC0VoxYSF2KD+Ylhib4QIWxG7AVPHQ8Ed5QBpeZyh7EFXnTpKWBbSakGcFdWGveW/y06+W9UyLQmvZV/D98kJQz+BPqf2GVqOj/4Jv4oxJoTCffeqWLmi7a1xEF3tgzd1L7u/ubkJkJqCSkbPxZXQmC/gBy3CgwNCUJ1KmhI=
-    ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: a9133b47afebc18a000cbb433c522a27_8a4898ea6dfb11f1aa625254006c9bbf
-    ReservedCode2: d4mkzl0dRw1Z0pmoa64sC0VoxYSF2KD+Ylhib4QIWxG7AVPHQ8Ed5QBpeZyh7EFXnTpKWBbSakGcFdWGveW/y06+W9UyLQmvZV/D98kJQz+BPqf2GVqOj/4Jv4oxJoTCffeqWLmi7a1xEF3tgzd1L7u/ubkJkJqCSkbPxZXQmC/gBy3CgwNCUJ1KmhI=
----
 
 > **作者**：Fisheep.L
 
