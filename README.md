@@ -4,7 +4,6 @@
 # 彩虹岛大冒险 · 预测工具使用指南
 
 > **版本**：v4 | **最后更新**：2026-06-22  
-> **工具文件**：[rainbow-predictor-v4.html](<C:\Users\lfish\Desktop\彩虹大冒险分析工具\rainbow-predictor-v4.html>)
 
 ---
 
