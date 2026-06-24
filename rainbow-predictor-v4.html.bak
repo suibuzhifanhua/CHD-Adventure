@@ -1,0 +1,2037 @@
+<!--
+  彩虹大冒险 · 策略助手 v4 (backup)
+  @author Fisheep.L
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>彩虹大冒险 · 策略助手 v4</title>
+<script src="tiles_compact.js"></script>
+<style>
+:root {
+  --bg: #1a1a2e; --panel: #16213e; --border: #0f3460;
+  --accent: #e94560; --gold: #f0c040; --text: #e0e0e0; --text2: #a0a0b0;
+  --green: #4ecca3; --blue: #4ea8f6; --purple: #9b59b6; --orange: #f39c12;
+  --warp: #4ea8f6; --card: #4ecca3; --boss: #e94560; --stop: #f39c12;
+  --good: #4ecca3; --bad: #e94560; --warn: #f39c12;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI','Microsoft YaHei',sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+/* ===== HEADER ===== */
+.header { background:linear-gradient(135deg,#e94560,#f0c040,#4ecca3,#4ea8f6,#9b59b6); padding:3px; flex-shrink:0; }
+.header-inner { background:var(--bg); padding:8px 18px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.header h1 { font-size:1.1em; font-weight:700; }
+.header h1 span { background:linear-gradient(90deg,#e94560,#f0c040,#4ecca3,#4ea8f6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.header p { color:var(--text2); font-size:0.68em; margin-top:1px; }
+.header-right { margin-left:auto; font-size:0.7em; color:var(--text2); display:flex; gap:6px; align-items:center; }
+.header-right a { color:var(--text2); text-decoration:none; padding:3px 8px; border:1px solid var(--border); border-radius:5px; }
+.header-right a:hover { color:var(--text); border-color:var(--accent); }
+
+/* ===== MAIN LAYOUT ===== */
+.main { display:flex; flex:1; overflow:hidden; gap:0; }
+
+/* ===== LEFT: INPUT PANEL (50%) ===== */
+.input-panel {
+  flex:1; min-width:0; max-width:50%;
+  background:#12122a;
+  border-right:3px solid var(--gold);
+  overflow-y:auto;
+  padding:20px 18px;
+  display:flex; flex-direction:column; gap:16px;
+}
+.section-title {
+  font-size:0.82em; font-weight:800; color:var(--gold);
+  letter-spacing:1.2px;
+  padding-bottom:7px; border-bottom:2px solid rgba(240,192,64,0.3);
+  margin-bottom:8px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.section-title .badge { font-size:0.85em; color:var(--text2); font-weight:500; letter-spacing:0; }
+
+/* Strategy mode switch */
+.mode-row { display:flex; gap:4px; margin-bottom:6px; }
+.mode-btn {
+  flex:1; padding:8px 4px; border-radius:6px; border:1.5px solid var(--border);
+  background:var(--bg); color:var(--text2); cursor:pointer; font-size:0.68em; font-weight:700;
+  transition:all 0.12s; text-align:center; white-space:nowrap;
+}
+.mode-btn:hover { border-color:var(--gold); color:var(--text); }
+.mode-btn.active { border-color:var(--gold); color:var(--gold); background:rgba(240,192,64,0.1); }
+
+/* Stage progress bar */
+.stage-bar-wrap { margin:4px 0; }
+.stage-bar-label { font-size:0.68em; color:var(--text2); margin-bottom:3px; display:flex; justify-content:space-between; }
+.stage-bar-outer { height:10px; border-radius:5px; background:var(--bg); overflow:hidden; border:1px solid var(--border); }
+.stage-bar-inner { height:100%; border-radius:5px; background:linear-gradient(90deg, var(--purple), var(--blue), var(--green), var(--gold)); transition:width 0.3s; }
+
+/* Position input */
+.pos-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.pos-row label { font-size:0.85em; color:var(--text); font-weight:700; white-space:nowrap; }
+.pos-input {
+  flex:1; padding:10px 8px; border-radius:8px; border:2px solid var(--border);
+  background:var(--bg); color:var(--gold); font-size:1.3em; font-weight:800;
+  text-align:center; outline:none; transition:border-color 0.15s, box-shadow 0.15s;
+}
+.pos-input:focus { border-color:var(--gold); box-shadow:0 0 12px rgba(240,192,64,0.25); }
+.pos-total { font-size:0.75em; color:var(--text2); font-weight:600; }
+
+/* Current tile info strip */
+.tile-strip {
+  background:var(--bg); border-radius:8px; padding:10px 12px;
+  font-size:0.88em; display:flex; align-items:center; gap:10px;
+  border-left:4px solid var(--border);
+  transition:border-color 0.2s;
+}
+.tile-strip .tile-emoji { font-size:1.8em; }
+.tile-strip .tile-info { flex:1; min-width:0; }
+.tile-strip .tile-type { font-weight:800; font-size:1.05em; }
+.tile-strip .tile-map { color:var(--text2); font-size:0.88em; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tile-strip.t-CARD { border-left-color:var(--card); }
+.tile-strip.t-BOSS { border-left-color:var(--boss); }
+.tile-strip.t-WARP, .tile-strip.t-WARP_BIG, .tile-strip.t-WARP_SUPER, .tile-strip.t-KING_WARP { border-left-color:var(--warp); }
+.tile-strip.t-STOP { border-left-color:var(--stop); }
+
+/* Quick jump buttons */
+.quick-row { display:flex; flex-wrap:wrap; gap:5px; }
+.qbtn {
+  flex:1; min-width:40px; padding:7px 4px; border-radius:6px; border:1.5px solid var(--border);
+  background:var(--bg); color:var(--text); cursor:pointer; font-size:0.78em; font-weight:600;
+  transition:all 0.12s; text-align:center;
+}
+.qbtn:hover { border-color:var(--accent); color:var(--text); background:#2a1a2a; }
+.qbtn.neg { color:#88bbff; }
+.qbtn.pos { color:#88ffbb; }
+
+/* Divider */
+.divider { border:none; border-top:1px solid var(--border); margin:2px 0; }
+
+/* Card inventory */
+.card-slots { display:flex; gap:6px; flex-wrap:wrap; }
+.card-slot {
+  flex:1; min-width:48px; padding:6px 3px;
+  border-radius:8px; border:2px dashed var(--border);
+  cursor:pointer; text-align:center; font-size:0.62em;
+  min-height:50px; display:flex; align-items:center; justify-content:center;
+  flex-direction:column; transition:all 0.15s; line-height:1.15; gap:1px;
+  font-weight:600;
+}
+.card-slot.empty { color:var(--text2); font-size:0.7em; }
+.card-slot.empty:hover { border-color:var(--blue); color:var(--blue); background:#1a1a3a; }
+.card-slot.filled { border-style:solid; color:#fff; }
+.card-slot.filled:hover { opacity:0.8; transform:scale(1.03); }
+.card-slot.step  { background:rgba(78,204,163,0.12); border-color:var(--green); }
+.card-slot.mult  { background:rgba(155,89,182,0.12); border-color:var(--purple); }
+.card-slot.skip  { background:rgba(243,156,18,0.12); border-color:var(--orange); }
+.card-slot.back  { background:rgba(233,69,96,0.12); border-color:var(--bad); }
+.card-slot.other { background:rgba(78,168,246,0.10); border-color:var(--blue); }
+.card-slot.slot-warn { animation:pulse 1.5s infinite; }
+.card-hint { font-size:0.65em; color:var(--text2); margin-top:5px; text-align:center; }
+
+/* Pool status text grid — compact cells with card labels */
+.pool-status { margin-top:5px; }
+.pool-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; }
+.pool-header .pool-count { font-size:0.60em; color:var(--text2); font-weight:600; }
+.pool-header .pool-count span { color:var(--gold); font-size:1.0em; }
+.pool-grid { display:grid; grid-template-columns:repeat(15, 1fr); gap:2px; }
+.pool-cell {
+  width:100%; aspect-ratio:auto; height:14px; border-radius:2px;
+  border:1px solid var(--border); transition:all 0.15s;
+  cursor:default; font-size:0.50em; line-height:14px; text-align:center;
+  font-weight:700; overflow:hidden; white-space:nowrap;
+  font-family:'Segoe UI','Microsoft YaHei',sans-serif;
+}
+/* Held (in hand) — bright background per type */
+.pool-cell.held { border-color:var(--accent); color:#fff; }
+.pool-cell.held.step  { background:var(--green); }
+.pool-cell.held.mult  { background:var(--purple); }
+.pool-cell.held.skip  { background:var(--orange); }
+.pool-cell.held.back  { background:var(--bad); }
+.pool-cell.held.other { background:var(--blue); }
+/* Drawn this round (not in hand) — greyed out */
+.pool-cell.drawn { background:#444; color:#888; border-color:#333; }
+/* Free (not drawn yet) — dark with white text */
+.pool-cell.free { background:#2a2a2a; color:#fff; }
+.pool-cell.free:hover, .pool-cell.drawn:hover { opacity:0.75; }
+.pool-refresh { display:none; text-align:center; font-size:0.58em; color:var(--gold); margin-top:2px; animation:poolPulse 0.6s ease-in-out 3; }
+.pool-refresh.show { display:block; }
+@keyframes poolPulse { 0%,100%{opacity:0.3;transform:scale(1);} 50%{opacity:1;transform:scale(1.05);} }
+@keyframes pulse { 0%,100%{border-color:var(--border);} 50%{border-color:var(--accent);box-shadow:0 0 8px rgba(233,69,96,0.5);} }
+
+/* Card picker modal */
+.card-picker {
+  display:none; position:fixed; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  background:var(--panel); border:2px solid var(--accent); border-radius:12px;
+  padding:16px; z-index:1000; width:360px; max-height:80vh; overflow-y:auto;
+}
+.card-picker.show { display:block; }
+.card-picker h3 { font-size:0.88em; margin-bottom:10px; color:var(--gold); }
+.cp-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+.cp-item {
+  padding:7px 8px; border-radius:6px; border:1px solid var(--border);
+  cursor:pointer; font-size:0.72em; text-align:center; transition:all 0.1s;
+}
+.cp-item:hover { border-color:var(--accent); background:#2a2a4a; }
+.cp-cat { grid-column:1/-1; font-size:0.68em; font-weight:700; margin:6px 0 2px 0; padding-bottom:2px; border-bottom:1px solid var(--border); }
+.cp-cat.step  { color:var(--green); }
+.cp-cat.mult  { color:var(--purple); }
+.cp-cat.skip  { color:var(--orange); }
+.cp-cat.back  { color:var(--bad); }
+.cp-cat.other { color:var(--blue); }
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:999; }
+.overlay.show { display:block; }
+
+/* Sim control */
+.sim-row { display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+.sim-btn {
+  padding:8px 14px; border-radius:7px; border:1.5px solid var(--gold);
+  background:var(--bg); color:var(--gold); cursor:pointer;
+  font-size:0.78em; font-weight:700; transition:all 0.12s;
+}
+.sim-btn:hover { background:rgba(240,192,64,0.12); }
+.sim-btn.running { border-color:var(--accent); color:var(--accent); animation:pulse 1s infinite; }
+
+/* ===== RIGHT: STRATEGY PANEL (50%) ===== */
+.strategy-panel {
+  flex:1; min-width:0; max-width:50%;
+  overflow-y:auto; padding:20px 22px;
+  display:flex; flex-direction:column; gap:14px;
+  background:linear-gradient(180deg, #12122a 0%, #1a1a2e 100%);
+}
+
+/* Hero box */
+.hero-box {
+  background:linear-gradient(135deg, #1a1a10 0%, #181818 40%, #1a1a10 100%);
+  border:3px solid var(--gold);
+  border-radius:14px;
+  padding:16px 18px;
+  box-shadow:0 0 30px rgba(240,192,64,0.15), 0 4px 24px rgba(0,0,0,0.5);
+  position:relative;
+}
+.hero-title {
+  font-size:1.1em; font-weight:800; color:var(--gold);
+  margin-bottom:10px; padding-bottom:7px;
+  border-bottom:1px solid rgba(240,192,64,0.25);
+  display:flex; align-items:center; gap:8px;
+}
+.hero-badge {
+  font-size:0.6em; padding:2px 10px; border-radius:10px;
+  background:rgba(240,192,64,0.18); color:var(--gold);
+  border:1px solid rgba(240,192,64,0.35); font-weight:600;
+}
+.hero-body { font-size:0.92em; line-height:1.6; }
+.hero-item {
+  padding:8px 12px; background:rgba(0,0,0,0.25); border-radius:7px;
+  margin-bottom:5px; border-left:3px solid var(--green);
+  font-size:0.9em; line-height:1.5;
+}
+.hero-item.warn   { border-left-color:var(--warn); }
+.hero-item.danger { border-left-color:var(--bad); background:rgba(233,69,96,0.1); }
+.hero-item.info   { border-left-color:var(--blue); }
+.hero-item.priority { border-left-color:var(--gold); background:rgba(240,192,64,0.08); }
+.hero-item .action   { color:var(--gold); font-weight:700; }
+.hero-item .good     { color:var(--good); }
+.hero-item .bad      { color:var(--bad); }
+.hero-item .warn-text{ color:var(--warn); }
+
+/* Detail sections */
+.detail-section {
+  background:var(--panel); border-radius:10px; border:1px solid var(--border);
+  overflow:hidden;
+}
+.detail-header {
+  padding:10px 14px; cursor:pointer; user-select:none;
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:0.78em; font-weight:700; color:var(--text);
+  transition:background 0.12s;
+}
+.detail-header:hover { background:rgba(255,255,255,0.03); }
+.detail-header .arrow { font-size:0.8em; color:var(--text2); transition:transform 0.2s; display:inline-block; }
+.detail-header.open .arrow { transform:rotate(90deg); }
+.detail-body { padding:8px 14px 12px 14px; font-size:0.78em; display:none; }
+.detail-body.open { display:block; }
+
+.rec-section {
+  font-size:0.78em; color:var(--gold); font-weight:700;
+  margin:10px 0 5px 0; padding-bottom:3px;
+  border-bottom:1px dashed rgba(240,192,64,0.3);
+  display:flex; align-items:center; gap:6px;
+}
+.rec-section::before { content:''; flex:none; width:3px; height:10px; background:var(--gold); border-radius:2px; }
+.rec-item {
+  padding:7px 10px; background:var(--bg); border-radius:5px;
+  margin-bottom:3px; border-left:3px solid var(--green);
+  font-size:0.82em; line-height:1.45;
+}
+.rec-item.warn   { border-left-color:var(--warn); }
+.rec-item.danger { border-left-color:var(--bad); background:#1e1010; }
+.rec-item.info   { border-left-color:var(--blue); }
+.rec-item.priority { border-left-color:var(--gold); background:rgba(240,192,64,0.06); }
+
+/* Monte Carlo stats table */
+.mc-stats { font-size:0.72em; margin-top:6px; }
+.mc-stats table { width:100%; border-collapse:collapse; }
+.mc-stats th { background:var(--panel); color:var(--gold); font-weight:700; padding:4px 6px; text-align:center; border-bottom:1px solid var(--border); font-size:0.85em; }
+.mc-stats td { padding:4px 6px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.04); }
+.mc-stats .best { color:var(--good); font-weight:700; }
+.mc-stats .worst { color:var(--bad); }
+.mc-stats .mode-label { text-align:left; font-weight:700; }
+
+/* Log area */
+.log-area {
+  background:var(--bg); border-radius:6px; border:1px solid var(--border);
+  padding:6px 8px; font-size:0.65em; max-height:180px; overflow-y:auto;
+  font-family:'Cascadia Code','Consolas',monospace; color:var(--text2); line-height:1.6;
+  white-space:pre-wrap; word-break:break-all;
+}
+
+/* Map data browser */
+.map-data-toggle {
+  font-size:0.68em; font-weight:700; color:var(--accent);
+  text-transform:uppercase; letter-spacing:1px;
+  padding:8px 0 5px 0; border-top:1px solid var(--border);
+  margin-top:8px; cursor:pointer; user-select:none;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.map-data-toggle:hover { color:var(--gold); }
+.map-data-toggle .arrow { font-size:0.9em; color:var(--text2); transition:transform 0.2s; }
+.map-data-toggle.open .arrow { transform:rotate(90deg); }
+.map-data-body { display:none; margin-top:6px; }
+.map-data-body.open { display:block; }
+.map-data-toolbar { display:flex; gap:6px; margin-bottom:6px; align-items:center; }
+.map-data-search {
+  flex:1; padding:4px 7px; border-radius:5px;
+  border:1px solid var(--border); background:var(--bg);
+  color:var(--text); font-size:0.72em; outline:none;
+}
+.map-data-search:focus { border-color:var(--gold); }
+.map-data-count { font-size:0.68em; color:var(--text2); white-space:nowrap; }
+.map-data-table-wrap {
+  max-height:260px; overflow-y:auto; background:var(--bg); border-radius:6px; padding:2px;
+}
+.map-data-table { width:100%; border-collapse:collapse; font-size:0.65em; }
+.map-data-table th {
+  position:sticky; top:0; background:var(--panel); color:var(--gold);
+  font-weight:700; padding:4px 5px; text-align:left; border-bottom:1px solid var(--border); z-index:1;
+}
+.map-data-table td { padding:3px 5px; border-bottom:1px solid rgba(255,255,255,0.04); white-space:nowrap; }
+.map-data-table tr:hover { background:rgba(240,192,64,0.06); }
+.map-data-table tr.current-map { background:rgba(240,192,64,0.1); }
+.map-data-table .num { text-align:right; font-variant-numeric:tabular-nums; }
+.map-data-table .card-count { color:var(--card); font-weight:600; }
+.map-data-table .boss-count { color:var(--boss); }
+.map-data-table .warp-count { color:var(--warp); }
+
+/* Empty state */
+.empty-state {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:30px 20px; color:var(--text2); text-align:center; gap:8px;
+}
+.empty-state .icon { font-size:2.5em; opacity:0.4; }
+.empty-state .msg  { font-size:0.82em; opacity:0.7; }
+
+@media (max-width:900px) {
+  .main { flex-direction:column; overflow:auto; }
+  .input-panel { max-width:100%; border-right:none; border-bottom:2px solid var(--border); overflow-y:visible; }
+  .strategy-panel { min-height:400px; max-width:100%; }
+  body { height:auto; overflow:auto; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <h1><span>彩虹大冒险 · 策略助手 v4</span></h1>
+      <p>完整幸运卡系统 · 75阶段制 · 多策略蒙特卡洛对比 · 步数最大化</p>
+    </div>
+    <div class="header-right">
+      <span id="sim-status" style="color:var(--text2);">就绪</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: INPUT PANEL -->
+  <div class="input-panel">
+
+    <!-- Strategy Mode Switch -->
+    <div><div class="section-title">策略模式</div>
+      <div class="mode-row" id="mode-row">
+        <button class="mode-btn active" data-mode="optimal" onclick="setMode('optimal',this)">最优策略</button>
+        <button class="mode-btn" data-mode="random" onclick="setMode('random',this)">随机用卡</button>
+        <button class="mode-btn" data-mode="basic" onclick="setMode('basic',this)">仅基础骰子</button>
+      </div>
+    </div>
+
+    <!-- Current State -->
+    <div><div class="section-title">当前状态</div>
+      <!-- Position -->
+      <div class="pos-row">
+        <label>格数</label>
+        <input type="number" id="in-pos" class="pos-input" value="1" min="1" max="2898" oninput="onPosChange()" onchange="onPosChange()">
+        <span class="pos-total">/ 2898</span>
+      </div>
+      <!-- Stage progress -->
+      <div class="stage-bar-wrap">
+        <div class="stage-bar-label"><span id="stage-label">阶段 1 / 75</span><span id="stage-progress-text">1 / 35</span></div>
+        <div class="stage-bar-outer"><div class="stage-bar-inner" id="stage-bar-inner" style="width:2.9%;"></div></div>
+      </div>
+      <!-- Tile strip -->
+      <div id="tile-strip" class="tile-strip">
+        <span class="tile-emoji">🏁</span>
+        <div class="tile-info"><div class="tile-type">起点</div><div class="tile-map">加载中...</div></div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Card Inventory -->
+    <div>
+      <div class="section-title">手牌库存 <span class="badge" id="card-badge">0 / 5</span></div>
+      <div class="card-slots" id="card-slots"></div>
+      <div class="card-hint">点击空格添加卡片 · 点击卡片使用</div>
+      <div class="pool-status" id="pool-status" style="display:none;">
+        <div class="pool-header">
+          <span style="font-size:0.58em;font-weight:700;color:var(--text2);">卡池</span>
+          <span class="pool-count">剩余 <span id="pool-remain">0</span> / 30</span>
+        </div>
+        <div class="pool-grid" id="pool-grid"></div>
+        <div class="pool-refresh" id="pool-refresh">卡池刷新 · 新一轮开始</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Monte Carlo sim control -->
+    <div>
+      <div class="section-title">蒙特卡洛模拟 <span class="badge" id="mc-badge">100骰子 × N次</span></div>
+      <div class="sim-row">
+        <input type="number" id="mc-runs" value="100" min="10" max="2000" step="10" style="width:70px;padding:6px 4px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.78em;text-align:center;">
+        <span style="font-size:0.7em;color:var(--text2);">次模拟</span>
+        <button class="sim-btn" id="sim-btn" onclick="runMonteCarlo()">开始模拟</button>
+      </div>
+    </div>
+
+    <!-- Map data browser -->
+    <div class="map-data-toggle" id="map-data-toggle" onclick="toggleMapData()">
+      地图数据 <span class="arrow">▶</span>
+    </div>
+    <div class="map-data-body" id="map-data-body">
+      <div class="map-data-toolbar">
+        <input type="text" class="map-data-search" id="map-data-search" placeholder="搜索地图名称..." oninput="renderMapDataTable(this.value)">
+        <span class="map-data-count" id="map-data-count">—</span>
+      </div>
+      <div class="map-data-table-wrap">
+        <table class="map-data-table" id="map-data-table">
+          <thead><tr><th>#</th><th>地图名称</th><th class="num">格数</th><th class="num">起~止</th><th class="num">🃏</th><th class="num">👹</th><th class="num">🌀</th></tr></thead>
+          <tbody id="map-data-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /input-panel -->
+
+  <!-- RIGHT: STRATEGY PANEL -->
+  <div class="strategy-panel">
+    <!-- Hero Box -->
+    <div class="hero-box" id="hero-box">
+      <div class="hero-title">
+        现在该做什么
+        <span class="hero-badge" id="hero-badge">步数优先</span>
+      </div>
+      <div class="hero-body" id="hero-body">
+        <div class="empty-state"><div class="icon">🎯</div><div class="msg">输入当前格数并设置手牌后自动分析</div></div>
+      </div>
+    </div>
+
+    <!-- Monte Carlo results -->
+    <div class="detail-section" id="detail-mc">
+      <div class="detail-header open" onclick="toggleDetail('detail-mc')">
+        蒙特卡洛对比 · 100骰子模拟结果 <span class="arrow">▶</span>
+      </div>
+      <div class="detail-body open" id="detail-mc-body">
+        <div class="empty-state"><div class="icon">🎲</div><div class="msg">点击"开始模拟"运行蒙特卡洛分析</div></div>
+      </div>
+    </div>
+
+    <!-- Detail analysis -->
+    <div class="detail-section" id="detail-all">
+      <div class="detail-header open" onclick="toggleDetail('detail-all')">
+        详情分析 <span class="arrow">▶</span>
+      </div>
+      <div class="detail-body open" id="detail-all-body"></div>
+    </div>
+
+    <!-- Sim log -->
+    <div class="detail-section" id="detail-log">
+      <div class="detail-header" onclick="toggleDetail('detail-log')">
+        最近模拟日志 <span class="arrow">▶</span>
+      </div>
+      <div class="detail-body" id="detail-log-body"><div class="log-area" id="log-area">暂无日志</div></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- Card picker overlay -->
+<div class="overlay" id="overlay" onclick="closeCardPicker()"></div>
+<div class="card-picker" id="card-picker"><h3>选择卡片类型</h3><div class="cp-grid" id="cp-grid"></div>
+  <button onclick="closeCardPicker()" style="width:100%;margin-top:10px;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;font-size:0.82em;">取消</button>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS & DATA
+// ============================================================
+const CAT_EMOJI = {
+  START:'🏁', END:'🏆', NORMAL:'⬜', CARD:'🃏', BOSS:'👹', STOP:'⛔',
+  WARP:'🌀', WARP_BIG:'🌪️', WARP_SUPER:'⚡', KING_WARP:'👑', WARP_OUT:'📤',
+  POINT:'💰', GRADE:'⭐', SUPER:'💪', CHEST_GOLD:'📦', CHEST_BLUE:'💎', CHEST_WOOD:'🪵',
+  EVENT_RED:'❗', EVENT_BLUE:'💙', EVENT_YELLOW:'💛', SUMMON:'🐉', TRAP:'⚠️', EVENT:'❓'
+};
+const CAT_NAME = {
+  START:'起点', END:'终点', NORMAL:'普通', CARD:'幸运卡', BOSS:'首领', STOP:'强制停止',
+  WARP:'管子捷径', WARP_BIG:'大捷径', WARP_SUPER:'超级捷径', KING_WARP:'跳王捷径', WARP_OUT:'管子出口',
+  POINT:'冒险点数', GRADE:'评价点数', SUPER:'超人点数', CHEST_GOLD:'金宝箱', CHEST_BLUE:'蓝宝箱', CHEST_WOOD:'木宝箱',
+  EVENT_RED:'红色事件', EVENT_BLUE:'蓝色事件', EVENT_YELLOW:'黄色事件', SUMMON:'召唤兽', TRAP:'陷阱', EVENT:'事件'
+};
+const WARP_CATS = ['WARP','WARP_BIG','WARP_SUPER','KING_WARP'];
+const DICE_PROBS = {2:1/36,3:2/36,4:3/36,5:4/36,6:5/36,7:6/36,8:5/36,9:4/36,10:3/36,11:2/36,12:1/36};
+const TOTAL_TILES = 2898;
+const TOTAL_DICE = 100;
+const STAGES = 75;
+const DEFAULT_TILES_PER_STAGE = 35;
+const STAGE_TILE_COUNTS = [
+   30, 35, 35, 37, 30, 32, 31, 32, 30, 35,
+   35, 37, 30, 32, 37, 39, 30, 35, 32, 31,
+   35, 31, 35, 35, 31, 39, 37, 31, 35, 37,
+   35, 37, 30, 39, 41, 44, 41, 39, 42, 41,
+   35, 37, 44, 39, 46, 30, 46, 46, 35, 39,
+   37, 47, 44, 35, 32, 39, 31, 44, 46, 30,
+   47, 46, 44, 30, 41, 44, 39, 46, 46, 47,
+   46, 60, 60, 60, 60
+];
+const CARD_HOLD_MAX = 5;
+
+// ============================================================
+// STAGE SYSTEM
+// ============================================================
+let STAGE_BOUNDARIES = [];
+function buildStageBoundaries() {
+  STAGE_BOUNDARIES = [];
+  let cursor = 1;
+  for (let s = 1; s <= STAGES; s++) {
+    let tilesInStage = (s - 1 < STAGE_TILE_COUNTS.length) ? STAGE_TILE_COUNTS[s - 1] : DEFAULT_TILES_PER_STAGE;
+    STAGE_BOUNDARIES.push({ stage: s, start: cursor, end: cursor + tilesInStage - 1, tiles: tilesInStage });
+    cursor += tilesInStage;
+  }
+  STAGE_BOUNDARIES[STAGES - 1].end = Math.min(STAGE_BOUNDARIES[STAGES - 1].end, TOTAL_TILES);
+  STAGE_BOUNDARIES[STAGES - 1].tiles = STAGE_BOUNDARIES[STAGES - 1].end - STAGE_BOUNDARIES[STAGES - 1].start + 1;
+}
+function getStageInfo(pos) {
+  for (let s of STAGE_BOUNDARIES) {
+    if (pos >= s.start && pos <= s.end) return s;
+  }
+  return STAGE_BOUNDARIES[STAGE_BOUNDARIES.length - 1];
+}
+buildStageBoundaries();
+
+// ============================================================
+// FULL 30-CARD DECK
+// ============================================================
+// 30 unique cards, no repeat draw. When drawn, removed from deck.
+// Deck reset on new simulation or when all drawn.
+const ALL_CARD_DEFS = {
+  // 12 forward cards (1-12 steps)
+  'fw1':  {id:'fw1',  name:'前进+1',  type:'step',  value:1,  emoji:'1️⃣', weight:3.0},
+  'fw2':  {id:'fw2',  name:'前进+2',  type:'step',  value:2,  emoji:'2️⃣', weight:3.0},
+  'fw3':  {id:'fw3',  name:'前进+3',  type:'step',  value:3,  emoji:'3️⃣', weight:3.0},
+  'fw4':  {id:'fw4',  name:'前进+4',  type:'step',  value:4,  emoji:'4️⃣', weight:2.0},
+  'fw5':  {id:'fw5',  name:'前进+5',  type:'step',  value:5,  emoji:'5️⃣', weight:2.0},
+  'fw6':  {id:'fw6',  name:'前进+6',  type:'step',  value:6,  emoji:'6️⃣', weight:2.0},
+  'fw7':  {id:'fw7',  name:'前进+7',  type:'step',  value:7,  emoji:'7️⃣', weight:2.0},
+  'fw8':  {id:'fw8',  name:'前进+8',  type:'step',  value:8,  emoji:'8️⃣', weight:2.0},
+  'fw9':  {id:'fw9',  name:'前进+9',  type:'step',  value:9,  emoji:'9️⃣', weight:1.0},
+  'fw10': {id:'fw10', name:'前进+10', type:'step',  value:10, emoji:'🔟', weight:1.0},
+  'fw11': {id:'fw11', name:'前进+11', type:'step',  value:11, emoji:'1️⃣1️⃣', weight:1.0},
+  'fw12': {id:'fw12', name:'前进+12', type:'step',  value:12, emoji:'1️⃣2️⃣', weight:1.0},
+  // 3 backward cards (-1 to -3)
+  'bw1': {id:'bw1', name:'后退-1', type:'back', value:-1, emoji:'⬅1', weight:1.5},
+  'bw2': {id:'bw2', name:'后退-2', type:'back', value:-2, emoji:'⬅2', weight:1.5},
+  'bw3': {id:'bw3', name:'后退-3', type:'back', value:-3, emoji:'⬅3', weight:1.5},
+  // 6 multiplier cards
+  'x2':  {id:'x2',  name:'×2倍骰', type:'mult', value:2,  emoji:'×2', weight:2.0},
+  'x3':  {id:'x3',  name:'×3倍骰', type:'mult', value:3,  emoji:'×3', weight:2.0},
+  'x5':  {id:'x5',  name:'×5倍骰', type:'mult', value:5,  emoji:'×5', weight:1.5},
+  'x7':  {id:'x7',  name:'×7倍骰', type:'mult', value:7,  emoji:'×7', weight:1.5},
+  'x8':  {id:'x8',  name:'×8倍骰', type:'mult', value:8,  emoji:'×8', weight:1.0},
+  'x10': {id:'x10', name:'×10倍骰',type:'mult', value:10, emoji:'×10', weight:1.0},
+  // Stage skip card
+  'skip': {id:'skip', name:'跳阶段', type:'skip', value:0, emoji:'⏭️', weight:0.7},
+  // Other cards (8 types)
+  'boss_s': {id:'boss_s', name:'召唤首领', type:'other', value:0, emoji:'👹📢', weight:1.0},
+  'move_to':{id:'move_to',name:'移动到指定格',type:'other',value:0, emoji:'🎯'},
+  'dice1':  {id:'dice1', name:'额外骰子+1',type:'other',value:0, emoji:'🎲+1', weight:1.0},
+  'dice2':  {id:'dice2', name:'额外骰子+2',type:'other',value:0, emoji:'🎲+2', weight:1.0},
+  'shield': {id:'shield',name:'护盾', type:'other', value:0, emoji:'🛡️', weight:1.0},
+  'trap_c': {id:'trap_c',name:'陷阱卡', type:'other', value:0, emoji:'⚠️', weight:1.0},
+  'gold_c': {id:'gold_c',name:'金币卡', type:'other', value:0, emoji:'💰', weight:1.0},
+  'event_c':{id:'event_c',name:'事件卡', type:'other', value:0, emoji:'❓'},
+};
+const ALL_CARD_IDS = Object.keys(ALL_CARD_DEFS);
+
+// ============================================================
+// UI STATE
+// ============================================================
+let heldCards = [];
+let currentMode = 'optimal';  // 'optimal' | 'random' | 'basic'
+let activeMultiplier = 0;  // 0 = none, otherwise N = ×N multiplier active
+
+function getCardInfo(ck) {
+  return ALL_CARD_DEFS[ck] || {id:ck, name:ck, type:'step', value:0, emoji:'?'};
+}
+
+function getCurrentPos() {
+  return Math.max(1, Math.min(TOTAL_TILES, parseInt(document.getElementById('in-pos').value) || 1));
+}
+
+// ============================================================
+// BOARD MECHANICS HELPERS
+// ============================================================
+let ALL_BOSSES = TILE_DATA.filter(t => t.c === 'BOSS').map(t => t.s);
+
+function findNextBoss(pos) {
+  for (let b of ALL_BOSSES) { if (b > pos) return b; }
+  return null;
+}
+
+function findNextBosses(pos, count) {
+  let r = [];
+  for (let b of ALL_BOSSES) { if (b > pos && r.length < count) r.push(b); }
+  return r;
+}
+
+function followWarpChain(startPos) {
+  let pos = startPos, visited = new Set(), chain = [];
+  for (let i = 0; i < 5; i++) {
+    if (pos < 1 || pos > TOTAL_TILES || visited.has(pos)) break;
+    visited.add(pos);
+    let t = TILE_DATA[pos - 1];
+    if (!t) break;
+    let isWarp = WARP_CATS.includes(t.c);
+    chain.push({pos, cat: t.c, isWarp, dest: t.f || pos});
+    if (!isWarp) break;
+    pos = t.f;
+  }
+  let final = chain[chain.length - 1];
+  return {chain, finalPos: final.pos, finalCat: final.cat, landsOnCard: final.cat === 'CARD'};
+}
+
+function getTileAt(pos) {
+  if (pos < 1 || pos > TOTAL_TILES) return null;
+  return TILE_DATA[pos - 1];
+}
+
+// ============================================================
+// FORWARD RESOURCES ANALYSIS
+// ============================================================
+function calcForwardResources(pos, minDist, maxDist) {
+  let cardProbs = [], warpProbs = [], combineProbs = [];
+  let cardCount = 0, warpCount = 0, bossCount = 0, stopCount = 0;
+  for (let i = 1; i <= maxDist; i++) {
+    let s = pos + i; if (s > TOTAL_TILES) break;
+    let t = TILE_DATA[s - 1]; if (!t) continue;
+    if (i >= minDist) {
+      cardProbs.push(t.cp || 0);
+      warpProbs.push(t.wp || 0);
+      combineProbs.push(Math.min(1, (t.cp || 0) + (t.wp || 0)));
+    }
+    if (t.c === 'CARD') cardCount++;
+    if (WARP_CATS.includes(t.c)) warpCount++;
+    if (t.c === 'BOSS') bossCount++;
+    if (t.c === 'STOP') stopCount++;
+  }
+  let avg = arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+  return {cardAvg: avg(cardProbs), warpAvg: avg(warpProbs), combineAvg: avg(combineProbs), cardCount, warpCount, bossCount, stopCount, cells: cardProbs.length};
+}
+
+// ============================================================
+// CARD EXCHANGE ANALYSIS
+// ============================================================
+function calcCardExchange(pos, stepAmount) {
+  let target = pos + stepAmount;
+  if (target < 1 || target > TOTAL_TILES) return {reaches: false, target: -1};
+  let tile = TILE_DATA[target - 1];
+  if (!tile) return {reaches: false, target: -1};
+  let warpInfo = followWarpChain(target);
+  let finalTile = TILE_DATA[warpInfo.finalPos - 1];
+  let fwd = calcForwardResources(warpInfo.finalPos, 4, 21);
+  let isRich = fwd.cardAvg > 0.20, isPoor = fwd.cardAvg < 0.13;
+  let warpDesc = '';
+  if (warpInfo.chain.length > 1) {
+    warpDesc = warpInfo.chain.map(s => { let t = TILE_DATA[s.pos - 1]; return '#' + s.pos + '(' + (CAT_NAME[t.c] || t.c) + ')'; }).join(' → ');
+    if (warpInfo.landsOnCard) warpDesc += ' ✅终点=🃏卡片格';
+  }
+  return {
+    reaches: true, target,
+    directCat: tile.c, directIsCard: tile.c === 'CARD',
+    finalPos: warpInfo.finalPos, finalIsCard: warpInfo.landsOnCard,
+    isCard: tile.c === 'CARD' || warpInfo.landsOnCard,
+    cat: warpInfo.landsOnCard ? 'CARD' : tile.c,
+    catName: CAT_NAME[warpInfo.landsOnCard ? 'CARD' : tile.c] || '',
+    catEmoji: CAT_EMOJI[warpInfo.landsOnCard ? 'CARD' : tile.c] || '?',
+    mapName: finalTile.m, mapNum: finalTile.mn,
+    cardProb: finalTile.cp || tile.cp || 0,
+    isWarp: WARP_CATS.includes(tile.c),
+    warpChain: warpInfo.chain, warpDesc,
+    warpFinalPos: warpInfo.finalPos,
+    forwardCardAvg: fwd.cardAvg,
+    forwardCombineAvg: fwd.combineAvg,
+    isRich, isPoor,
+  };
+}
+
+// ============================================================
+// MULTIPLIER WINDOW ANALYSIS
+// ============================================================
+function calcMultiplierWindow(pos, multiplier, bossPos) {
+  if (!bossPos || bossPos <= pos) return null;
+  let results = [];
+  for (let cand = pos; cand < bossPos; cand++) {
+    if (cand > TOTAL_TILES) break;
+    let skipProb = 0, cardTotalProb = 0;
+    for (let d = 2; d <= 12; d++) {
+      let move = d * multiplier, land = cand + move;
+      if (land >= bossPos) skipProb += DICE_PROBS[d];
+      if (land <= TOTAL_TILES) {
+        let lt = TILE_DATA[land - 1];
+        if (lt && lt.c === 'CARD') cardTotalProb += DICE_PROBS[d];
+      }
+    }
+    if (skipProb > 0.2) {
+      let fwd = calcForwardResources(cand, 4, 21);
+      results.push({candidate: cand, skipProb, cardTotalProb, combineProb: skipProb * cardTotalProb, forwardCardAvg: fwd.cardAvg, isRich: fwd.cardAvg > 0.20});
+    }
+  }
+  if (results.length === 0) return null;
+  let best = results.reduce((a, b) => a.combineProb > b.combineProb ? a : b);
+  let maxCardProb = Math.max(...results.map(r => r.cardTotalProb));
+  return {multiplier, bossPos, distToBoss: bossPos - pos, windowStart: results[0].candidate, windowEnd: results[results.length - 1].candidate, inWindow: pos >= results[0].candidate, bestCandidate: best.candidate, bestSkipProb: best.skipProb, bestCardProb: best.cardTotalProb, maxCardProb, shortestDist: results[0].candidate - pos};
+}
+
+// ============================================================
+// STAGE SKIP ANALYSIS
+// ============================================================
+function calcSkipMapAnalysis(pos) {
+  let si = getStageInfo(pos);
+  if (!si || si.stage >= STAGES) return null;
+  let nextSi = STAGE_BOUNDARIES[si.stage];  // 0-indexed, next stage
+  if (!nextSi) return null;
+  let ns = nextSi.start;
+  let st = getTileAt(ns);
+  if (!st) return null;
+  let fwd = calcForwardResources(ns, 4, 21);
+  let mapEnd = nextSi.end;
+  let totalCp = 0, cardTileCount = 0, firstCardDist = -1, bossCount = 0;
+  for (let i = ns; i <= mapEnd && i <= TOTAL_TILES; i++) {
+    let t = TILE_DATA[i - 1];
+    if (!t) break;
+    totalCp += (t.cp || 0);
+    if (t.c === 'CARD') { cardTileCount++; if (firstCardDist < 0) firstCardDist = i - ns + 1; }
+    if (t.c === 'BOSS') bossCount++;
+  }
+  let nextMapCardProb = 0;
+  for (let d = 2; d <= 12; d++) {
+    let land = ns + d;
+    if (land > mapEnd) continue;
+    let lt = TILE_DATA[land - 1];
+    if (lt && lt.c === 'CARD') nextMapCardProb += DICE_PROBS[d];
+  }
+  return {
+    stageNum: nextSi.stage, startPos: ns, dist: ns - pos, tiles: nextSi.tiles,
+    hasBoss: bossCount > 0, bossCount,
+    startIsCard: st.c === 'CARD',
+    startForwardCardAvg: fwd.cardAvg, isRich: fwd.cardAvg > 0.20, isPoor: fwd.cardAvg < 0.13,
+    mapCardTileCount: cardTileCount,
+    mapAvgCardProb: cardTileCount > 0 ? cardTileCount / nextSi.tiles : 0,
+    firstCardDist: firstCardDist > 0 ? firstCardDist : null,
+    nextMapCardProb
+  };
+}
+
+// ============================================================
+// CARD DECISION STRATEGY ENGINE
+// ============================================================
+// Returns the best card to use, or null if none should be used now.
+// Decision priorities:
+// 1. Backward cards: NEVER use (discard or hold)
+// 2. Stage-skip card: use at stage end (>70% through stage)
+// 3. Multiplier cards: use when in skip-window AND step cards available
+// 4. Forward cards: use near stage end or to skip boss
+// 5. Other cards: use if beneficial contextually
+// ============================================================
+// BOSS BYPASS (Opt 4): scan ahead for boss, use step card to leap over
+// ============================================================
+function evaluateBossBypass(pos, hand) {
+  let bosses = [];
+  for (let step = 1; step <= 7; step++) {
+    let tp = pos + step;
+    if (tp > TOTAL_TILES) break;
+    let tile = getTileAt(tp);
+    if (tile && tile.c === 'BOSS') bosses.push({pos: tp, dist: step});
+  }
+  if (bosses.length === 0) return null;
+  let nearest = bosses[0];
+  let bestOption = null;
+  for (let ck of hand) {
+    let cd = getCardInfo(ck);
+    if (!cd || cd.type !== 'step' || cd.value <= 0) continue;
+    if (cd.value > nearest.dist) {
+      let landPos = pos + cd.value;
+      if (landPos > TOTAL_TILES) landPos = TOTAL_TILES;
+      let wc = followWarpChain(landPos);
+      let saved = 1; // boss consumes 1 die
+      let value = saved * 7 + (wc.finalPos - pos - 7);
+      if (!bestOption || value > bestOption.value) {
+        bestOption = {cardKey: ck, cardDef: cd, bossPos: nearest.pos, bossDist: nearest.dist, jumpTo: wc.finalPos, savedDice: saved, value: value};
+      }
+    }
+  }
+  return bestOption;
+}
+
+// ============================================================
+// ACTIVE WARP STEPPING (Opt 2): use step cards to land on warp tiles
+// ============================================================
+function findWarpSteppingOpportunities(pos) {
+  let opportunities = [];
+  for (let step = 1; step <= 12; step++) {
+    let targetPos = pos + step;
+    if (targetPos > TOTAL_TILES) break;
+    let tile = getTileAt(targetPos);
+    if (!tile) continue;
+    if (WARP_CATS.includes(tile.c)) {
+      let wc = followWarpChain(targetPos);
+      let warpGain = wc.finalPos - targetPos;
+      let netGain = wc.finalPos - pos;
+      let warpOutTile = getTileAt(wc.finalPos);
+      let warpOutIsCard = warpOutTile && warpOutTile.c === 'CARD';
+      opportunities.push({
+        warpPos: targetPos, stepNeeded: step, finalPos: wc.finalPos,
+        warpGain: warpGain, netGain: netGain, chainLength: wc.chainLength || 1,
+        warpOutIsCard: warpOutIsCard, warpOutCategory: warpOutTile ? warpOutTile.c : '?',
+        score: netGain + (warpOutIsCard ? 5 : 0) + (wc.chainLength || 1) * 2
+      });
+    }
+  }
+  opportunities.sort((a, b) => b.score - a.score);
+  return opportunities;
+}
+
+// ============================================================
+// MULTI-STEP LOOKAHEAD (Opt 1): 3-step fast Monte Carlo lookahead
+// ============================================================
+function multiStepLookahead(pos, hand, remainingDice, cardIdx, cardDef) {
+  let SAMPLES = 10;
+  function fastSimOne(startPos, startHand, useNow) {
+    let p = startPos, h = [...startHand], dl = remainingDice;
+    for (let step = 0; step < 3 && dl > 0 && p < TOTAL_TILES; step++) {
+      if (useNow && step === 0 && cardIdx < h.length) {
+        let cd = cardDef;
+        if (cd.type === 'step' && cd.value > 0) {
+          p += cd.value; if (p > TOTAL_TILES) p = TOTAL_TILES;
+          let wc = followWarpChain(p); p = wc.finalPos;
+        } else if (cd.type === 'mult') {
+          let move = 7 * cd.value;
+          p += move; if (p > TOTAL_TILES) p = TOTAL_TILES;
+          let wc = followWarpChain(p); p = wc.finalPos; dl--;
+        } else if (cd.type === 'skip') {
+          let si = getStageInfo(p);
+          if (si.stage < STAGES) p = STAGE_BOUNDARIES[si.stage].start;
+        }
+        h.splice(cardIdx, 1);
+        let lt = getTileAt(p);
+        if (lt && WARP_CATS.includes(lt.c) && lt.f) p = lt.f;
+        continue;
+      }
+      p += 7; if (p > TOTAL_TILES) { p = TOTAL_TILES; break; }
+      dl--;
+      let lt2 = getTileAt(p);
+      if (lt2 && WARP_CATS.includes(lt2.c) && lt2.f) p = lt2.f;
+      if (lt2 && lt2.c === 'BOSS') dl--;
+    }
+    return p;
+  }
+  let resultsA = [], resultsB = [];
+  for (let i = 0; i < SAMPLES; i++) { resultsA.push(fastSimOne(pos, hand, false)); }
+  for (let i = 0; i < SAMPLES; i++) { resultsB.push(fastSimOne(pos, hand, true)); }
+  let avgA = resultsA.reduce((a, b) => a + b, 0) / SAMPLES;
+  let avgB = resultsB.reduce((a, b) => a + b, 0) / SAMPLES;
+  return {withoutCard: avgA, withCard: avgB, delta: avgB - avgA, beneficial: avgB > avgA};
+}
+
+
+// ── Card pool value for back-swap evaluation ──────────────
+function getCardPoolValue(ck) {
+  let cd = getCardInfo(ck);
+  if (!cd) return 0;
+  if (cd.type === 'skip') return 50;
+  if (cd.type === 'step' && cd.value >= 9) return 15;
+  if (cd.type === 'step' && cd.value >= 4) return 8;
+  if (cd.type === 'step' && cd.value >= 1) return 3;
+  if (cd.type === 'mult' && cd.value >= 8) return 12;
+  if (cd.type === 'mult' && cd.value >= 5) return 7;
+  if (cd.type === 'mult' && cd.value >= 2) return 3;
+  if (cd.type === 'back') return 0;
+  return 2;
+}
+
+// ── Back-card swap evaluation ─────────────────────────────
+function evaluateBackSwap(pos, hand, backCard, remainingDice, phase) {
+  let stepBack = Math.abs(backCard.value); // 1, 2, or 3
+  let targetPos = pos - stepBack;
+  if (targetPos < 1) targetPos = 1;
+
+  // Deterministic landing: check if target tile is CARD
+  // If tile data is missing, fall back to global CARD density estimate
+  if (!evaluateBackSwap._cardDensity) {
+    let ct = 0;
+    for (let i = 0; i < TILE_DATA.length; i++) {
+      if (TILE_DATA[i] && TILE_DATA[i].c === 'CARD') ct++;
+    }
+    evaluateBackSwap._cardDensity = ct / Math.max(1, TILE_DATA.length);
+  }
+  let targetTile = getTileAt(targetPos);
+  let landsOnCard, cardProb;
+  if (targetTile) {
+    landsOnCard = targetTile.c === 'CARD';
+    cardProb = landsOnCard ? (targetTile.cp || 0.70) : 0;
+  } else {
+    // Tile not in TILE_DATA → use global CARD density as fallback
+    landsOnCard = false;
+    cardProb = evaluateBackSwap._cardDensity;
+  }
+
+  // Pool quality: remaining = ALL cards not in current hand
+  let handSet = new Set(hand);
+  let poolScore = 0, poolSize = 0;
+  for (let ck of ALL_CARD_IDS) {
+    if (handSet.has(ck)) continue;
+    poolScore += getCardPoolValue(ck);
+    poolSize++;
+  }
+  let avgPoolScore = poolSize > 0 ? poolScore / poolSize : 0;
+
+  // Expected swap value: -stepBack + P(CARD) × avgPoolScore
+  let expectedSwap = -stepBack + cardProb * avgPoolScore;
+
+  // Hand-size multiplier: more cards in hand = less cost to burn one for a swap
+  let handSwapMul = 1.0;
+  if (hand.length >= 4) handSwapMul = 2.0;
+  else if (hand.length >= 3) handSwapMul = 1.5;
+  expectedSwap *= handSwapMul;
+
+  // Pool richness bonus: only matters if we actually land on a CARD to draw
+  if (landsOnCard && poolSize > 20) expectedSwap += 5;
+
+  // Phase adjustments
+  if (phase === 'aggressive') {
+    // Bonus if skip card is still in pool
+    if (!handSet.has('skip')) expectedSwap += 2;
+    // Bonus if high-step cards remain
+    let highSteps = 0;
+    for (let ck of ALL_CARD_IDS) {
+      if (handSet.has(ck)) continue;
+      let cd = getCardInfo(ck);
+      if (cd && cd.type === 'step' && cd.value >= 9) highSteps++;
+    }
+    if (highSteps >= 2) expectedSwap += 1;
+  }
+
+  return expectedSwap;
+}
+
+function makeDecision(state) {
+  let {pos, hand, remainingDice, deckSize} = state;
+  let si = getStageInfo(pos);
+  let stageProgress = (pos - si.start + 1) / si.tiles;  // 0~1
+  let boss1 = findNextBoss(pos);
+  let decisions = [];
+
+  // Phase (Opt 3: dice-remaining adaptive strategy)
+  let phase = 'balanced', phaseMul = 1.0;
+  if (remainingDice >= 40) { phase = 'conservative'; phaseMul = 0.7; }
+  else if (remainingDice <= 15) { phase = 'aggressive'; phaseMul = 1.5; }
+
+  // BOSS bypass + warp stepping (Opt 2+4)
+  let bossBypass = evaluateBossBypass(pos, hand);
+  let warpOpps = findWarpSteppingOpportunities(pos);
+
+  for (let i = 0; i < hand.length; i++) {
+    let ck = hand[i];
+    let cd = getCardInfo(ck);
+    let score = -999;
+
+    if (cd.type === 'back') {
+      // BACK CARD SWAP — highest priority when target is CARD.
+      // Core principle: retreating to a CARD tile = burn a bad card + draw a better one.
+      // Score is deliberately high (500+ base) to outrank ALL forward/dice cards.
+      let stepBack = Math.abs(cd.value);
+      let targetPos = Math.max(1, pos - stepBack);
+      let targetTile = getTileAt(targetPos);
+      let landsOnCard = targetTile && targetTile.c === 'CARD';
+      let backSwapVal = evaluateBackSwap(pos, hand, cd, remainingDice, phase);
+
+      if (landsOnCard) {
+        // Target IS CARD → guaranteed swap with massive priority
+        score = 500 + backSwapVal * 20;
+        if (hand.length >= 3) score += 100;
+        if (hand.length >= 4) score += 200; // cumulative: hand≥4 gets +300 total
+        // Pool richness bonus
+        let poolRemaining = 30 - hand.length;
+        if (poolRemaining > 15) score += 150;
+        // Phase bonus
+        if (phase === 'aggressive') score += 200;
+      } else if (backSwapVal > 0) {
+        // Marginal: pool is rich, swap might be worth it without CARD landing
+        score = 60 + backSwapVal * 15;
+        if (hand.length >= 4) score += 30;
+      } else {
+        score = backSwapVal * 10;
+      }
+
+      // Debug
+      console.log('[backSwap]', cd.name, 'pos=' + pos, 'target=' + targetPos,
+        'landsOnCard=' + landsOnCard, 'backSwapVal=' + backSwapVal.toFixed(3),
+        'handSize=' + hand.length, 'poolRemaining=' + (30 - hand.length),
+        'score=' + score.toFixed(0), 'phase=' + phase);
+    } else if (cd.type === 'skip') {
+      // Stage skip: use at end of stage (progress > 0.7)
+      if (stageProgress > 0.7) {
+        let skip = calcSkipMapAnalysis(pos);
+        if (skip) score = 200 + skip.mapCardTileCount * 15;
+        else score = -100;
+      } else if (stageProgress > 0.5) {
+        score = stageProgress * 100 - 30;
+      } else {
+        score = -50;
+      }
+      if (boss1 && boss1 <= si.end && (boss1 - pos) < 8) score += 80;
+      // Phase: aggressive uses skip sooner
+      if (phase === 'aggressive') score += 50;
+      else if (phase === 'conservative' && stageProgress < 0.6) score -= 30;
+    } else if (cd.type === 'mult') {
+      // Multiplier card: use when in skip-window
+      if (boss1) {
+        let mw = calcMultiplierWindow(pos, cd.value, boss1);
+        if (mw && mw.inWindow) {
+          score = 150 + mw.bestCardProb * 200;
+          if (remainingDice < 15) score -= 80;
+        } else if (mw) {
+          score = 20 + (1 - (mw.shortestDist / mw.distToBoss)) * 100;
+        } else {
+          score = -80;
+        }
+      } else {
+        score = remainingDice > 30 ? 50 : -20;
+      }
+      if (remainingDice < 20 && cd.value >= 7) score += 40;
+      // Phase adjustments for multipliers
+      if (phase === 'aggressive') { score += cd.value >= 5 ? 40 : 15; }
+      else if (phase === 'conservative' && cd.value < 5) score -= 20;
+    } else if (cd.type === 'step' && cd.value > 0) {
+      // Forward card — capped to ensure back-card swap always outranks
+      let ex = calcCardExchange(pos, cd.value);
+      if (!ex.reaches) { score = -200; }
+      else if (ex.isCard) {
+        score = 100 + (ex.finalPos - pos) * 0.8;
+        if (ex.isRich) score += 30;
+        if (boss1 && ex.finalPos > boss1) score += 60;
+      } else {
+        score = (ex.finalPos - pos) * 0.6;
+        if (boss1 && ex.finalPos > boss1) score += 40;
+        if (ex.isPoor) score -= 20;
+      }
+      if (stageProgress > 0.8) score += 30;
+      if (hand.length >= 4) score += 25;
+      // Boss bypass bonus (Opt 4)
+      if (bossBypass && bossBypass.cardKey === ck) score += bossBypass.value * 5;
+      // Warp stepping bonus (Opt 2)
+      for (let wo of warpOpps) {
+        if (cd.value >= wo.stepNeeded) { score += wo.score * 0.5; break; }
+      }
+      // Multi-step lookahead (Opt 1) - in balanced phase for non-trivial choices
+      if (remainingDice > 10 && remainingDice < 90) {
+        let la = multiStepLookahead(pos, hand, remainingDice, i, cd);
+        if (la.beneficial) score += Math.min(la.delta * 2, 30);
+        else if (la.delta < -5) score -= 10;
+      }
+      // Cap: ensure back-card swap (500+ base) always outranks forward cards
+      score = Math.min(score, 400);
+    } else if (cd.type === 'other') {
+      if (cd.id === 'dice1' || cd.id === 'dice2') {
+        score = remainingDice < 30 ? 80 : 30;
+      } else {
+        score = -20;
+      }
+      if (phase === 'aggressive') score += 45;
+    }
+
+    // Apply phase multiplier
+    score *= phaseMul;
+    decisions.push({index: i, cardId: ck, cardDef: cd, score});
+  }
+
+  // Slot-full adaptive: if hand is full and CARD tiles ahead, boost lowest card
+  if (hand.length >= 5) {
+    let cardAhead = false;
+    for (let d = 1; d <= 12; d++) {
+      let t = getTileAt(pos + d);
+      if (t && t.c === 'CARD') { cardAhead = true; break; }
+    }
+    if (cardAhead && decisions.length > 0) {
+      // Find the lowest-scoring non-back card and boost it to encourage freeing a slot
+      let lowest = null;
+      for (let d of decisions) {
+        if (d.cardDef.type === 'back') continue;
+        if (!lowest || d.score < lowest.score) lowest = d;
+      }
+      if (lowest) {
+        lowest.score += 35;
+        if (lowest.cardDef.type === 'other') lowest.score += 10;
+      }
+    }
+  }
+
+  decisions.sort((a, b) => b.score - a.score);
+  let best = decisions[0];
+
+  // Phase-aware decision threshold
+  let threshold = 40;
+  if (phase === 'aggressive') threshold = 15;
+  else if (phase === 'conservative') threshold = 50;
+
+  if (best && best.score > threshold) {
+    let reasonParts = [best.cardDef.name];
+    if (phase !== 'balanced') reasonParts.push(phase === 'aggressive' ? '激进' : '保守');
+    reasonParts.push('(分:' + best.score.toFixed(0) + ')');
+    return {useCard: true, cardIndex: best.index, cardId: best.cardId, cardDef: best.cardDef, reason: reasonParts.join('·'), allDecisions: decisions};
+  }
+
+  if (hand.length >= 4 && best && best.score > -200) {
+    return {useCard: true, cardIndex: best.index, cardId: best.cardId, cardDef: best.cardDef, reason: '卡槽紧张·' + best.cardDef.name + ' (分:' + best.score.toFixed(0) + ')', allDecisions: decisions};
+  }
+
+  return {useCard: false, allDecisions: decisions};
+}
+
+// ============================================================
+// DECISION FOR RANDOM STRATEGY (baseline)
+// ============================================================
+function randomDecision(state) {
+  let {hand} = state;
+  if (hand.length === 0) return {useCard: false};
+  // Randomly use a card 40% of the time
+  if (Math.random() < 0.4 && hand.length >= 1) {
+    let idx = Math.floor(Math.random() * hand.length);
+    return {useCard: true, cardIndex: idx, cardId: hand[idx], cardDef: getCardInfo(hand[idx]), reason: '随机使用'};
+  }
+  return {useCard: false};
+}
+
+// ============================================================
+// SINGLE SIMULATION RUN (100 dice)
+// ============================================================
+function simulateRun(startPos, strategyFn, logEnabled) {
+  let pos = startPos;
+  let diceUsed = 0;
+  let cardsDrawn = [];
+  let cardsUsed = [];
+  let stagesCleared = 0;
+  let log = [];
+
+  let hand = [...heldCards]; // Start with user's current hand
+
+  // Build fresh deck, excluding cards already in hand
+  let deck = ALL_CARD_IDS.filter(k => !hand.includes(k));
+  // Shuffle deck
+  for (let i = deck.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+
+  let lastStage = getStageInfo(pos).stage;
+
+  function drawCard() {
+    if (hand.length >= CARD_HOLD_MAX) return false;
+    if (deck.length === 0) {
+      deck = ALL_CARD_IDS.filter(k => !hand.includes(k));
+      for (let i = deck.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+    }
+    // Weighted random selection
+    let totalWeight = 0;
+    let weightedDeck = [];
+    for (let ck of deck) {
+      let cd = getCardInfo(ck);
+      if (!cd) continue;
+      let w = cd.weight || 1.0;
+      weightedDeck.push({key: ck, weight: w, cum: totalWeight + w});
+      totalWeight += w;
+    }
+    if (weightedDeck.length === 0) return false;
+    let roll = Math.random() * totalWeight;
+    let picked = weightedDeck[0].key;
+    for (let wd of weightedDeck) { if (roll <= wd.cum) { picked = wd.key; break; } }
+    let idx = deck.indexOf(picked);
+    if (idx === -1) return false;
+    let drawn = deck.splice(idx, 1)[0];
+    hand.push(drawn);
+    cardsDrawn.push(drawn);
+    if (logEnabled) log.push(`🃏抽到: ${getCardInfo(drawn).emoji} ${getCardInfo(drawn).name} [手牌:${hand.length}/5]`);
+    return true;
+  }
+
+  function useCardAt(index) {
+    let ck = hand[index];
+    let cd = getCardInfo(ck);
+    hand.splice(index, 1);
+    cardsUsed.push(ck);
+    if (logEnabled) log.push(`🎯使用: ${cd.emoji} ${cd.name}`);
+
+    if (cd.type === 'step' && cd.value !== 0) {
+      pos += cd.value;
+      if (pos > TOTAL_TILES) pos = TOTAL_TILES;
+      if (pos < 1) pos = 1;
+      let wc = followWarpChain(pos);
+      pos = wc.finalPos;
+      if (logEnabled) log.push(`  → 移动到第${pos}格`);
+    } else if (cd.type === 'mult') {
+      // Roll dice and multiply
+      let d1 = 1 + Math.floor(Math.random() * 6);
+      let d2 = 1 + Math.floor(Math.random() * 6);
+      let dice = d1 + d2;
+      let move = dice * cd.value;
+      pos += move;
+      if (pos > TOTAL_TILES) pos = TOTAL_TILES;
+      if (pos < 1) pos = 1;
+      let wc = followWarpChain(pos);
+      pos = wc.finalPos;
+      diceUsed++; // Consumes 1 die
+      if (logEnabled) log.push(`  → 点数${dice}×${cd.value}=${move}步 → 第${pos}格 (消耗1骰子)`);
+    } else if (cd.type === 'skip') {
+      let si = getStageInfo(pos);
+      if (si.stage < STAGES) {
+        pos = STAGE_BOUNDARIES[si.stage].start;
+        if (logEnabled) log.push(`  → 跳至阶段${si.stage+1}第${pos}格`);
+      }
+    } else if (cd.type === 'other') {
+      if (cd.id === 'dice1') { /* +1 extra dice roll */ }
+      if (logEnabled) log.push(`  → 使用${cd.name}（效果略）`);
+    }
+  }
+
+  // Main loop: 100 dice
+  for (diceUsed = 0; diceUsed < TOTAL_DICE; diceUsed++) {
+    if (pos >= TOTAL_TILES) break;
+
+    // Check if landed on card tile → draw card
+    let currentTile = getTileAt(pos);
+    if (currentTile && currentTile.c === 'CARD') {
+      let tileCardProb = currentTile.cp || 0.70;
+      if (hand.length >= CARD_HOLD_MAX) {
+        if (logEnabled) log.push('🈵 手牌已满，跳过抽卡');
+      } else if (Math.random() < tileCardProb) {
+        drawCard();
+      }
+    }
+
+    // Check if at boss tile → consume 1 die to pass
+    if (currentTile && currentTile.c === 'BOSS') {
+      diceUsed++; // consume 1 die for boss
+      if (logEnabled) log.push(`👹 首领格第${pos}格 · 消耗1骰子通过`);
+      if (diceUsed >= TOTAL_DICE) break;
+    }
+
+    // Strategy decision: should we use a card?
+    if (hand.length > 0) {
+      let remainingDice = TOTAL_DICE - diceUsed;
+      let state = {pos, hand, remainingDice, deckSize: deck.length};
+      let decision = strategyFn(state);
+      if (decision.useCard) {
+        if (logEnabled) log.push(`💡决策: ${decision.reason}`);
+        useCardAt(decision.cardIndex);
+        // After using card, check landing
+        currentTile = getTileAt(pos);
+        if (currentTile && currentTile.c === 'CARD') {
+          if (hand.length >= CARD_HOLD_MAX) {
+            if (logEnabled) log.push('🈵 手牌已满，跳过抽卡');
+          } else if (Math.random() < (currentTile.cp || 0.70)) drawCard();
+        }
+        if (currentTile && (currentTile.c === 'STOP' || currentTile.c === 'BOSS')) {
+          if (currentTile.c === 'BOSS') { diceUsed++; if (logEnabled) log.push(`👹 止于首领格第${pos}格 · 消耗1骰子`); }
+          continue;
+        }
+      }
+    }
+
+    // Roll dice
+    let d1 = 1 + Math.floor(Math.random() * 6);
+    let d2 = 1 + Math.floor(Math.random() * 6);
+    let dice = d1 + d2;
+    let isDouble = (d1 === d2);
+
+    pos += dice;
+    if (pos > TOTAL_TILES) { pos = TOTAL_TILES; break; }
+    if (pos < 1) pos = 1;
+
+    // Warp
+    let wt = getTileAt(pos);
+    if (wt && WARP_CATS.includes(wt.c) && wt.f) pos = wt.f;
+
+    // STOP/BOSS check
+    let landTile = getTileAt(pos);
+    if (landTile && (landTile.c === 'STOP' || landTile.c === 'BOSS')) {
+      if (landTile.c === 'BOSS') {
+        diceUsed++;
+        if (logEnabled) log.push(`👹 第${pos}格首领格 · 消耗1骰子`);
+      }
+    }
+
+    // Card tile check
+    if (landTile && landTile.c === 'CARD') {
+      if (hand.length >= CARD_HOLD_MAX) {
+        if (logEnabled) log.push('🈵 手牌已满，跳过抽卡');
+      } else if (Math.random() < (landTile.cp || 0.70)) drawCard();
+    }
+
+    // DOUBLE: extra roll
+    if (isDouble) {
+      let d3 = 1 + Math.floor(Math.random() * 6);
+      let d4 = 1 + Math.floor(Math.random() * 6);
+      let bonusDice = d3 + d4;
+      pos += bonusDice;
+      if (pos > TOTAL_TILES) { pos = TOTAL_TILES; break; }
+      let wt2 = getTileAt(pos);
+      if (wt2 && WARP_CATS.includes(wt2.c) && wt2.f) pos = wt2.f;
+      let lb2 = getTileAt(pos);
+      if (lb2 && (lb2.c === 'STOP' || lb2.c === 'BOSS')) {
+        if (lb2.c === 'BOSS') diceUsed++;
+      }
+      if (lb2 && lb2.c === 'CARD') {
+        if (hand.length >= CARD_HOLD_MAX) {
+          if (logEnabled) log.push('🈵 手牌已满，跳过抽卡');
+        } else if (Math.random() < (lb2.cp || 0.70)) drawCard();
+      }
+    }
+
+    // Track stage clearing
+    let curStage = getStageInfo(pos).stage;
+    if (curStage > lastStage) {
+      stagesCleared += (curStage - lastStage);
+      lastStage = curStage;
+    }
+  }
+
+  let finalSi = getStageInfo(pos);
+  return {
+    finalPosition: pos,
+    finalStage: finalSi.stage,
+    finalTileInStage: pos - finalSi.start + 1,
+    diceUsed,
+    cardsDrawn: cardsDrawn.length,
+    cardsUsedCount: cardsUsed.length,
+    stagesCleared,
+    log,
+    cardsDrawnList: cardsDrawn,
+    cardsUsedList: cardsUsed
+  };
+}
+
+// ============================================================
+// MONTE CARLO ENGINE
+// ============================================================
+let mcRunning = false;
+
+function runMonteCarlo() {
+  if (mcRunning) return;
+  let runs = parseInt(document.getElementById('mc-runs').value) || 100;
+  runs = Math.max(10, Math.min(2000, runs));
+  let pos = getCurrentPos();
+
+  mcRunning = true;
+  let btn = document.getElementById('sim-btn');
+  btn.textContent = '模拟中...';
+  btn.classList.add('running');
+  document.getElementById('sim-status').textContent = '运行中...';
+
+  // Reset heldCards for simulation (use user's current hand)
+  let currentHand = [...heldCards];
+
+  setTimeout(() => {
+    try {
+      let results = {optimal: [], random: [], basic: []};
+
+      for (let r = 0; r < runs; r++) {
+        // Optimal strategy
+        heldCards = [...currentHand];
+        let opt = simulateRun(pos, makeDecision, false);
+        results.optimal.push(opt);
+
+        // Random strategy
+        heldCards = [...currentHand];
+        let rnd = simulateRun(pos, randomDecision, false);
+        results.random.push(rnd);
+
+        // Basic (no cards at all)
+        heldCards = [];
+        let bas = simulateRun(pos, () => ({useCard: false}), false);
+        results.basic.push(bas);
+      }
+
+      // Restore user's hand
+      heldCards = [...currentHand];
+
+      // Compute statistics
+      function stats(arr, key) {
+        let vals = arr.map(r => r[key]).sort((a, b) => a - b);
+        let sum = vals.reduce((a, b) => a + b, 0);
+        let mean = sum / vals.length;
+        let median = vals.length % 2 === 0 ? (vals[vals.length / 2 - 1] + vals[vals.length / 2]) / 2 : vals[Math.floor(vals.length / 2)];
+        let best = vals[vals.length - 1];
+        let worst = vals[0];
+        let variance = vals.reduce((a, b) => a + (b - mean) * (b - mean), 0) / vals.length;
+        let std = Math.sqrt(variance);
+        return {mean, median, best, worst, variance, std, count: vals.length};
+      }
+
+      let optPos = stats(results.optimal, 'finalPosition');
+      let rndPos = stats(results.random, 'finalPosition');
+      let basPos = stats(results.basic, 'finalPosition');
+      let optStage = stats(results.optimal, 'finalStage');
+      let rndStage = stats(results.random, 'finalStage');
+      let basStage = stats(results.basic, 'finalStage');
+      let optCards = stats(results.optimal, 'cardsDrawn');
+      let rndCards = stats(results.random, 'cardsDrawn');
+      let basCards = stats(results.basic, 'cardsDrawn');
+      let optUsed = stats(results.optimal, 'cardsUsedCount');
+
+      // Build results table
+      let html = '<div class="mc-stats"><table><thead><tr><th>策略</th><th>均值(格)</th><th>中位数</th><th class="best">最佳</th><th class="worst">最差</th><th>标准差</th><th>均值(阶段)</th><th>抽卡</th><th>用卡</th></tr></thead><tbody>';
+
+      function row(label, posS, stageS, cardsS, usedS, cls) {
+        return `<tr class="${cls||''}"><td class="mode-label">${label}</td><td>${posS.mean.toFixed(1)}</td><td>${posS.median.toFixed(0)}</td><td class="best">${posS.best}</td><td class="worst">${posS.worst}</td><td>${posS.std.toFixed(1)}</td><td>${stageS.mean.toFixed(1)}</td><td>${cardsS.mean.toFixed(1)}</td><td>${(usedS||{mean:0}).mean.toFixed(1)}</td></tr>`;
+      }
+
+      html += row('最优策略', optPos, optStage, optCards, optUsed, '');
+      html += row('随机用卡', rndPos, rndStage, rndCards, stats(results.random, 'cardsUsedCount'), '');
+      html += row('仅基础骰子', basPos, basStage, basCards, {mean:0}, '');
+
+      // Delta row
+      let deltaOpt = optPos.mean - basPos.mean;
+      let deltaRnd = rndPos.mean - basPos.mean;
+      html += `<tr style="border-top:2px solid var(--gold);"><td class="mode-label" style="color:var(--gold);">最优 vs 基础</td><td colspan="2" style="color:var(--good);font-weight:700;">+${deltaOpt.toFixed(1)} 格</td><td colspan="2" style="color:var(--text2);">提升 ${(deltaOpt/basPos.mean*100).toFixed(1)}%</td><td colspan="4" style="color:var(--text2);">多走 ${(optStage.mean-basStage.mean).toFixed(1)} 阶段</td></tr>`;
+      html += `<tr><td class="mode-label" style="color:var(--warn);">随机 vs 基础</td><td colspan="2" style="color:${deltaRnd>0?'var(--warn)':'var(--bad)'};">${deltaRnd>=0?'+':''}${deltaRnd.toFixed(1)} 格</td><td colspan="2" style="color:var(--text2);">提升 ${(deltaRnd/basPos.mean*100).toFixed(1)}%</td><td colspan="4"></td></tr>`;
+
+      html += '</tbody></table></div>';
+      html += `<div style="font-size:0.68em;color:var(--text2);margin-top:4px;">${runs}次模拟 × 3策略 = ${runs*3}局 · 每局100骰子 · 基于当前手牌[${currentHand.map(c=>getCardInfo(c).name).join(',')||'无'}]</div>`;
+
+      // Build log for last optimal run
+      let lastOpt = results.optimal[results.optimal.length - 1];
+      let logText = lastOpt.log.join('\n');
+      if (!logText) logText = '(无日志)';
+      document.getElementById('log-area').textContent = logText;
+
+      document.getElementById('detail-mc-body').innerHTML = html;
+
+      mcRunning = false;
+      btn.textContent = '开始模拟';
+      btn.classList.remove('running');
+      document.getElementById('sim-status').textContent = `完成 · ${runs}次`;
+    } catch(e) {
+      mcRunning = false;
+      btn.textContent = '开始模拟';
+      btn.classList.remove('running');
+      document.getElementById('sim-status').textContent = '错误';
+      document.getElementById('detail-mc-body').innerHTML = `<div class="rec-item danger">模拟异常: ${e.message}</div>`;
+      console.error(e);
+    }
+  }, 30);
+}
+
+// ============================================================
+// STRATEGY REPORT (for current position)
+// ============================================================
+function generateReportData() {
+  let pos = getCurrentPos();
+  let tile = TILE_DATA[pos - 1];
+  if (!tile) return null;
+  let si = getStageInfo(pos);
+  let stageProgress = ((pos - si.start + 1) / si.tiles * 100);
+
+  let nCards = heldCards.length;
+  let remainingDice = Math.max(5, TOTAL_DICE - Math.floor(pos / 10));
+  let fwd = calcForwardResources(pos, 4, 21);
+  let bosses = findNextBosses(pos, 2);
+  let boss1 = bosses[0], boss2 = bosses[1];
+  let phase = pos < 100 ? '前期' : pos < 500 ? '中期' : pos > 2500 ? '后期冲刺' : '中后期';
+  let phaseAdv = '';
+  if (pos < 100 && remainingDice > 70) phaseAdv = '步数优先 · 步数卡少时前方中卡率30%+路段可博多拿卡';
+  else if (pos > 2500 || remainingDice < 20) phaseAdv = '接近终局 · 步数已够，以换卡+跳首领保护积分优先';
+  else phaseAdv = '步数优先 · 以卡换卡为核心，倍数卡仅在步数卡充足时才一鱼两吃';
+
+  let hasStepCards = heldCards.some(k => { let c = getCardInfo(k); return c && c.type === 'step' && c.value > 0; });
+  let hasMultCards = heldCards.some(k => { let c = getCardInfo(k); return c && c.type === 'mult'; });
+  let hasSkipCard = heldCards.includes('skip');
+  let hasBackCards = heldCards.some(k => { let c = getCardInfo(k); return c && c.type === 'back'; });
+
+  let priorities = [];
+  if (nCards >= 5) priorities.push({p: 0, cls: 'danger', msg: `<b class="bad">卡槽已满！</b> 立即用卡 → 步数卡换卡 → 倍数卡一鱼两吃 → 跳关卡止损`});
+  else if (nCards >= 4) priorities.push({p: 0, cls: 'danger', msg: `<b class="warn-text">爆卡预警！</b> 卡槽${nCards}/5 · 尽快消耗卡片`});
+
+  if (hasBackCards) {
+    let backCards = heldCards.filter(k => { let c = getCardInfo(k); return c && c.type === 'back'; });
+    priorities.push({p: 0.5, cls: 'danger', msg: `<b class="bad">持有后退卡！</b> ${backCards.map(c=>getCardInfo(c).emoji).join(' ')} 永远不要使用，优先丢弃或用其他卡覆盖`});
+  }
+
+  if (hasStepCards) {
+    let exs = [];
+    for (let ck of heldCards) {
+      let ct = getCardInfo(ck); if (!ct || ct.type !== 'step' || ct.value <= 0) continue;
+      let ex = calcCardExchange(pos, ct.value);
+      if (ex.reaches && ex.isCard) exs.push({ck, ct, ex});
+    }
+    if (exs.length > 0) {
+      let msg = `<b>步数卡换卡机会：</b> ${exs.map(s => s.ct.emoji + s.ct.name + '→第' + s.ex.target + '格🃏').join('  ')}`;
+      if (nCards >= 4) msg += ` <b class="warn-text">（卡槽紧张，优先换！）</b>`;
+      else msg += ` <span class="good">（步数优先，换卡继续前进）</span>`;
+      priorities.push({p: 1, cls: 'priority', msg});
+    }
+  }
+
+  if (hasMultCards && boss1) {
+    let inWin = [];
+    for (let ck of heldCards) {
+      let ct = getCardInfo(ck); if (!ct || ct.type !== 'mult') continue;
+      let mw = calcMultiplierWindow(pos, ct.value, boss1);
+      if (mw && mw.inWindow) inWin.push({ck, ct, mw});
+    }
+    if (inWin.length > 0) {
+      let best = inWin.reduce((a, b) => a.mw.bestCardProb > b.mw.bestCardProb ? a : b);
+      let sc = heldCards.filter(k => { let c = getCardInfo(k); return c && c.type === 'step' && c.value > 0; }).length;
+      let sw = sc < 2 ? ` <b class="warn-text">（步数卡仅${sc}张，先换卡）</b>` : '';
+      priorities.push({p: 2, cls: 'warn', msg: `<b class="action">倍数卡一鱼两吃：</b> ${best.ct.emoji} ${best.ct.name} 已入窗 · 第${best.mw.bestCandidate}格使用最佳(换卡${(best.mw.bestCardProb*100).toFixed(1)}%)${sw}`});
+    }
+  }
+
+  if (hasSkipCard && stageProgress > 50) {
+    let skip = calcSkipMapAnalysis(pos);
+    if (skip) {
+      let cls = skip.startIsCard ? 'priority' : 'warn';
+      priorities.push({p: 1.5, cls, msg: `<b>跳阶段机会：</b> 阶段进度${stageProgress.toFixed(0)}% · 可跳至阶段${skip.stageNum}首格${skip.startIsCard ? '🃏(卡片格!)' : ''}`});
+    }
+  }
+
+  if (!hasStepCards && !hasMultCards && !hasSkipCard && nCards === 0) {
+    priorities.push({p: 99, cls: 'info', msg: '手牌为空 · 正常投骰推进，遇到幸运卡格停下'});
+  } else if (priorities.length === 0) {
+    priorities.push({p: 99, cls: 'info', msg: '暂无紧迫操作 · 正常投骰，观察形势'});
+  }
+
+  let heroHTML = '';
+  let sorted = priorities.sort((a, b) => a.p - b.p);
+  for (let p of sorted) {
+    heroHTML += `<div class="hero-item ${p.cls}">${p.msg}</div>`;
+  }
+
+  // Detail sections
+  let d = [];
+  let slotCls = nCards >= 5 ? 'danger' : nCards >= 4 ? 'warn' : 'info';
+  let slotMsg = nCards >= 5 ? `<b class="bad">卡槽已满，必须立即用卡！</b>` : nCards >= 4 ? `<b class="warn-text">卡槽${nCards}/5，注意爆卡风险</b>` : `卡槽 ${nCards}/5 · 状态正常`;
+  d.push(`<div class="rec-item ${slotCls}">
+    第${pos}格 · 阶段${si.stage}/75 (${stageProgress.toFixed(0)}%) · ${CAT_EMOJI[tile.c]||''}${CAT_NAME[tile.c]||tile.c} · 距终点${TOTAL_TILES-pos}格 · ${slotMsg} · 预估剩余~${remainingDice}次骰子
+  </div>`);
+
+  // Card exchange
+  if (hasStepCards) {
+    d.push(`<div class="rec-section">以卡换卡分析（步数优先）</div>`);
+    for (let ck of heldCards) {
+      let ct = getCardInfo(ck);
+      if (!ct || ct.type !== 'step' || ct.value <= 0) continue;
+      let ex = calcCardExchange(pos, ct.value);
+      if (!ex.reaches) {
+        d.push(`<div class="rec-item warn">${ct.emoji} ${ct.name} → 超出地图范围</div>`);
+      } else if (ex.isCard) {
+        let res = ex.isRich ? `<span class="good">丰富</span>` : ex.isPoor ? `<span class="bad">贫瘠</span>` : '一般';
+        let chainInfo = ex.warpDesc ? `<br><span style="font-size:0.92em;color:var(--text2);">🌀 ${ex.warpDesc}</span>` : '';
+        d.push(`<div class="rec-item"><b class="good">✅ ${ct.emoji} ${ct.name} → 第${ex.finalPos}格 🃏幸运卡</b> [${ex.mapName}] · 新位置资源: ${res}(${(ex.forwardCardAvg*100).toFixed(1)}%)${chainInfo}</div>`);
+      } else {
+        d.push(`<div class="rec-item ${ex.isPoor?'warn':''}">❌ ${ct.emoji} ${ct.name} → 第${ex.finalPos}格 ${ex.catEmoji}${ex.catName}</div>`);
+      }
+    }
+  }
+
+  // Multiplier
+  if (hasMultCards && boss1) {
+    d.push(`<div class="rec-section">倍数卡一鱼两吃</div>`);
+    d.push(`<div class="rec-item info">👹 下一首领：<b>第${boss1}格</b>（${boss1-pos}格后）</div>`);
+    for (let ck of heldCards) {
+      let ct = getCardInfo(ck);
+      if (!ct || ct.type !== 'mult') continue;
+      let mw = calcMultiplierWindow(pos, ct.value, boss1);
+      if (!mw) { d.push(`<div class="rec-item warn">${ct.emoji} ${ct.name}: 距首领过近，无法安全跳过</div>`); continue; }
+      if (mw.inWindow) {
+        d.push(`<div class="rec-item priority">🔥 <b class="action">${ct.emoji} ${ct.name}: 已进入跳过窗口！</b> 最佳位置:第${mw.bestCandidate}格 · 换卡${(mw.bestCardProb*100).toFixed(1)}% · 跳过${(mw.bestSkipProb*100).toFixed(0)}%</div>`);
+      } else {
+        d.push(`<div class="rec-item">${ct.emoji} ${ct.name}: 跳过窗口在第${mw.windowStart}-${mw.windowEnd}格（还需推进${mw.shortestDist}格）</div>`);
+      }
+    }
+  }
+
+  // Skip card
+  if (hasSkipCard) {
+    d.push(`<div class="rec-section">跳阶段分析</div>`);
+    let skip = calcSkipMapAnalysis(pos);
+    if (skip) {
+      let cls = skip.startIsCard ? 'priority' : '';
+      d.push(`<div class="rec-item ${cls}">⏭️ 跳到 → <b>阶段${skip.stageNum}第${skip.startPos}格</b> (${skip.tiles}格)` + (skip.startIsCard ? ' 🃏起点是卡片格！' : '') + (skip.hasBoss ? ` ⚠有${skip.bossCount}个首领` : '') + '</div>');
+    }
+  }
+
+  // Backward card warning
+  if (hasBackCards) {
+    d.push(`<div class="rec-section">后退卡警告</div>`);
+    d.push(`<div class="rec-item danger"><b class="bad">绝对不要使用后退卡！</b> 这些卡只会减少你的总前进距离。在模拟中它们永远不会被使用，仅占用卡槽。</div>`);
+  }
+
+  // Forward resources
+  d.push(`<div class="rec-section">前方4~21格资源</div>`);
+  let fwdCls = fwd.cardAvg > 0.20 ? 'good' : fwd.cardAvg < 0.13 ? 'bad' : '';
+  d.push(`<div class="rec-item">平均中卡: <b class="${fwdCls}">${(fwd.cardAvg*100).toFixed(1)}%</b> · 捷径: ${(fwd.warpAvg*100).toFixed(1)}% · 综合: ${(fwd.combineAvg*100).toFixed(1)}% · 首领: <b style="color:var(--boss);">${fwd.bossCount}</b>个 · 停止: ${fwd.stopCount}个</div>`);
+  if (fwd.cardAvg > 0.20) d.push(`<div class="rec-item">✅ 前方资源<span class="good">丰富</span> → 三次投骰大概率中卡，步数卡尽量保留连续滚雪球</div>`);
+  else if (fwd.cardAvg < 0.13 && hasMultCards) d.push(`<div class="rec-item warn">前方资源<span class="bad">贫瘠</span> → 倍数卡跳过贫瘠路段时顺手换卡</div>`);
+
+  // Phase
+  d.push(`<div class="rec-section">${phase}策略</div>`);
+  d.push(`<div class="rec-item info">${phaseAdv}</div>`);
+  d.push(`<div class="rec-item info">🎲 <b>骰子DOUBLE机制：</b>两骰子相同(1+1~6+6)时触发，概率 <b style="color:var(--gold);">6/36≈16.7%</b>，获得一次额外独立投掷</div>`);
+
+  return {hero: heroHTML, details: d.join('')};
+}
+
+function updateStrategyReport() {
+  try {
+    let data = generateReportData();
+    if (!data) {
+      document.getElementById('hero-body').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><div class="msg">数据加载中...</div></div>';
+      return;
+    }
+    document.getElementById('hero-body').innerHTML = data.hero;
+    document.getElementById('detail-all-body').innerHTML = data.details;
+  } catch(e) {
+    document.getElementById('hero-body').innerHTML = `<div class="hero-item danger"><b>策略引擎异常：</b>${e.message}</div>`;
+    console.error(e);
+  }
+}
+
+// ============================================================
+// UI RENDERING
+// ============================================================
+function renderCardSlots() {
+  let html = '';
+  for (let i = 0; i < 5; i++) {
+    if (i < heldCards.length) {
+      let ck = heldCards[i], ct = getCardInfo(ck);
+      let cls = `card-slot filled ${ct.type}`;
+      if (heldCards.length >= 4 && ct.type === 'back') cls += ' slot-warn';
+      html += `<div class="${cls}" onclick="useCardFromHand(${i})" title="${ct.name}（点击使用）">${ct.emoji}<br>${ct.name}</div>`;
+    } else {
+      html += `<div class="card-slot empty" onclick="openCardPicker(${i})" title="添加卡片">+<br>添加</div>`;
+    }
+  }
+  document.getElementById('card-slots').innerHTML = html;
+  document.getElementById('card-badge').textContent = `${heldCards.length} / 5`;
+  renderPoolStatus();
+}
+
+function renderPoolStatus() {
+  let el = document.getElementById('pool-status');
+  if (heldCards.length === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+
+  // Refresh animation: when all 30 cards have been "in hand" at least once
+  let prevDrawnSet = el.dataset.drawnSet ? JSON.parse(el.dataset.drawnSet) : [];
+  let newDrawnSet = [...new Set([...prevDrawnSet, ...heldCards])];
+  let wasFull = prevDrawnSet.length >= 30;
+  let isFull = newDrawnSet.length >= 30;
+
+  if (isFull && !wasFull) {
+    // Pool just filled — show refresh animation, then reset
+    document.getElementById('pool-refresh').classList.add('show');
+    setTimeout(() => {
+      document.getElementById('pool-refresh').classList.remove('show');
+      newDrawnSet = [...heldCards]; // reset tracking
+      el.dataset.drawnSet = JSON.stringify(newDrawnSet);
+      renderPoolGrid(heldCards, newDrawnSet);
+    }, 1800);
+  } else if (isFull) {
+    // Already full, keep showing as full
+    document.getElementById('pool-refresh').classList.remove('show');
+  }
+
+  el.dataset.drawnSet = JSON.stringify(newDrawnSet);
+  let remain = 30 - new Set(heldCards).size;
+  document.getElementById('pool-remain').textContent = remain;
+  renderPoolGrid(heldCards, newDrawnSet);
+}
+
+// ── Card short label for pool grid ─────────────────────
+function getCardShortLabel(cd) {
+  if (cd.type === 'step' && cd.value > 0) return '+' + cd.value;
+  if (cd.type === 'back') return cd.value; // -1, -2, -3
+  if (cd.type === 'mult') return '\u00D7' + cd.value; // ×2, ×3, ...
+  if (cd.id === 'skip') return '\u8DF3';     // 跳
+  if (cd.id === 'boss_s') return '\u53EC';   // 召
+  if (cd.id === 'move_to') return '\u79FB';  // 移
+  if (cd.id === 'dice1') return '\u9AB0+';   // 骰+
+  if (cd.id === 'dice2') return '\u9AB0++';  // 骰++
+  if (cd.id === 'shield') return '\u76FE';   // 盾
+  if (cd.id === 'trap_c') return '\u9631';   // 阱
+  if (cd.id === 'gold_c') return '\u91D1';   // 金
+  if (cd.id === 'event_c') return '\u4E8B';  // 事
+  return cd.name.substring(0, 2);
+}
+
+function renderPoolGrid(heldCardsArr, drawnSetArr) {
+  let heldSet = new Set(heldCardsArr);
+  let drawnSet = new Set(drawnSetArr || []);
+  let html = '';
+  for (let ck of ALL_CARD_IDS) {
+    let cd = getCardInfo(ck);
+    let label = getCardShortLabel(cd);
+    let fullName = cd.emoji + ' ' + cd.name;
+    if (heldSet.has(ck)) {
+      html += `<div class="pool-cell held ${cd.type}" title="${fullName}（手牌中）">${label}</div>`;
+    } else if (drawnSet.has(ck)) {
+      html += `<div class="pool-cell drawn" title="${fullName}（本轮已抽过）">${label}</div>`;
+    } else {
+      html += `<div class="pool-cell free" title="${fullName}">${label}</div>`;
+    }
+  }
+  document.getElementById('pool-grid').innerHTML = html;
+}
+
+function updateTileStrip() {
+  let pos = getCurrentPos(), tile = TILE_DATA[pos - 1];
+  if (!tile) return;
+  let el = document.getElementById('tile-strip');
+  el.className = 'tile-strip t-' + (tile.c || 'NORMAL');
+  el.innerHTML = `<span class="tile-emoji">${CAT_EMOJI[tile.c]||'·'}</span>
+    <div class="tile-info"><div class="tile-type">${CAT_NAME[tile.c]||tile.c}</div>
+    <div class="tile-map">${tile.m} · 第${pos}格 · 距终点${TOTAL_TILES-pos}格</div></div>`;
+}
+
+function updateStageBar() {
+  let pos = getCurrentPos();
+  let si = getStageInfo(pos);
+  let tileInStage = pos - si.start + 1;
+  let pct = (tileInStage / si.tiles * 100);
+  document.getElementById('stage-label').textContent = `阶段 ${si.stage} / ${STAGES}`;
+  document.getElementById('stage-progress-text').textContent = `${tileInStage} / ${si.tiles}`;
+  document.getElementById('stage-bar-inner').style.width = pct.toFixed(1) + '%';
+}
+
+function onPosChange() {
+  try { updateTileStrip(); } catch(e) {}
+  try { updateStageBar(); } catch(e) {}
+  try { renderCardSlots(); } catch(e) {}
+  try { updateMultiplierUI(); } catch(e) {}
+  try { updateStrategyReport(); } catch(e) { console.error('strategy err:', e); }
+  try { renderMapBrowser(); } catch(e) {}
+  try { saveState(); } catch(e) {}
+}
+
+function quickJump(delta) {
+  let inp = document.getElementById('in-pos');
+  inp.value = Math.max(1, Math.min(TOTAL_TILES, (parseInt(inp.value) || 1) + delta));
+  onPosChange();
+}
+
+// ── Mode switching ──────────────────────────────────────
+function setMode(mode, btn) {
+  currentMode = mode;
+  document.querySelectorAll('#mode-row .mode-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  updateStrategyReport();
+}
+
+// ── Card Picker (enhanced with all 30 card types) ───────
+function openCardPicker(slotIdx) {
+  if (heldCards.length >= 5) return;
+  let g = document.getElementById('cp-grid');
+  g.innerHTML = '';
+
+  function addCats(catLabel, catClass, filterFn) {
+    g.innerHTML += `<div class="cp-cat ${catClass}">${catLabel}</div>`;
+    Object.entries(ALL_CARD_DEFS).filter(([,c]) => filterFn(c)).forEach(([k, c]) => {
+      g.innerHTML += `<div class="cp-item" onclick="addCard('${k}');closeCardPicker();">${c.emoji} ${c.name}</div>`;
+    });
+  }
+
+  addCats('前进卡 (12种)', 'step', c => c.type === 'step' && c.value > 0);
+  addCats('后退卡 (3种)', 'back', c => c.type === 'back');
+  addCats('骰子倍数卡 (6种)', 'mult', c => c.type === 'mult');
+  addCats('跳阶段卡', 'skip', c => c.type === 'skip');
+  addCats('其他卡 (8种)', 'other', c => c.type === 'other');
+
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('card-picker').classList.add('show');
+}
+
+function closeCardPicker() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('card-picker').classList.remove('show');
+}
+
+function addCard(key) {
+  if (heldCards.length >= 5) return;
+  heldCards.push(key);
+  renderCardSlots(); updateStrategyReport(); saveState();
+}
+
+function removeCard(i) {
+  heldCards.splice(i, 1);
+  renderCardSlots(); updateStrategyReport(); saveState();
+}
+
+// ── Use card from hand ───────────────────────────────────
+function useCardFromHand(i) {
+  if (i < 0 || i >= heldCards.length) return;
+  let ck = heldCards[i], card = getCardInfo(ck);
+  let pos = getCurrentPos();
+  let used = false;
+
+  switch (card.type) {
+    case 'step': {
+      let newPos = pos + card.value;
+      if (newPos > TOTAL_TILES) newPos = TOTAL_TILES;
+      if (newPos < 0) newPos = 0;
+      document.getElementById('in-pos').value = newPos;
+      flashPosInput();
+      // Warp chain check for landing tile
+      let landingTile = TILE_DATA[newPos - 1];
+      if (landingTile && WARP_CATS.includes(landingTile.c)) {
+        setTimeout(() => {
+          let wc = followWarpChain(newPos);
+          document.getElementById('in-pos').value = wc.finalPos;
+          flashPosInput();
+          onPosChange();
+        }, 300);
+      }
+      used = true;
+      break;
+    }
+    case 'back': {
+      let newPos = pos + card.value;
+      if (newPos > TOTAL_TILES) newPos = TOTAL_TILES;
+      if (newPos < 0) newPos = 0;
+      document.getElementById('in-pos').value = newPos;
+      flashPosInput();
+      used = true;
+      break;
+    }
+    case 'skip': {
+      let si = getStageInfo(pos);
+      let nextStage = STAGE_BOUNDARIES.find(s => s.stage === si.stage + 1);
+      let newPos = nextStage ? nextStage.start : pos;
+      if (newPos > TOTAL_TILES) newPos = TOTAL_TILES;
+      document.getElementById('in-pos').value = newPos;
+      flashPosInput();
+      used = true;
+      break;
+    }
+    case 'mult': {
+      activeMultiplier = card.value;
+      updateMultiplierUI();
+      used = true;
+      break;
+    }
+    case 'other': {
+      // dice bonus cards
+      if (card.id === 'dice1' || card.id === 'dice2') {
+        // extra dice effect - show notification
+      }
+      // other cards: just consume, position unchanged
+      used = true;
+      break;
+    }
+  }
+
+  if (used) {
+    heldCards.splice(i, 1);
+    renderCardSlots();
+    updateStrategyReport();
+    saveState();
+    onPosChange();
+  }
+}
+
+function applyMultiplierToRoll(roll) {
+  if (activeMultiplier > 0) {
+    let result = roll * activeMultiplier;
+    activeMultiplier = 0;
+    updateMultiplierUI();
+    return result;
+  }
+  return roll;
+}
+
+function updateMultiplierUI() {
+  let el = document.getElementById('multiplier-indicator');
+  if (!el) return;
+  if (activeMultiplier > 0) {
+    el.textContent = '×' + activeMultiplier + ' 倍数就绪';
+    el.style.display = 'inline-block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function flashPosInput() {
+  let inp = document.getElementById('in-pos');
+  inp.style.transition = 'none';
+  inp.style.boxShadow = '0 0 20px rgba(240,192,64,0.8)';
+  inp.style.borderColor = 'var(--gold)';
+  setTimeout(() => {
+    inp.style.transition = 'box-shadow 0.4s ease-out, border-color 0.4s ease-out';
+    inp.style.boxShadow = '';
+    inp.style.borderColor = '';
+  }, 50);
+  setTimeout(() => {
+    inp.style.boxShadow = '';
+    inp.style.borderColor = '';
+  }, 500);
+}
+
+// ── State persistence ────────────────────────────────────
+function saveState() {
+  try {
+    localStorage.setItem('rdm_pos_v4', getCurrentPos());
+    localStorage.setItem('rdm_cards_v4', JSON.stringify(heldCards));
+    localStorage.setItem('rdm_mode_v4', currentMode);
+    localStorage.setItem('rdm_mult_v4', activeMultiplier);
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    let p = localStorage.getItem('rdm_pos_v4');
+    let c = localStorage.getItem('rdm_cards_v4');
+    let m = localStorage.getItem('rdm_mode_v4');
+    if (p) document.getElementById('in-pos').value = p;
+    if (c) heldCards = JSON.parse(c);
+    if (m) { currentMode = m; document.querySelectorAll('#mode-row .mode-btn').forEach(b => { if (b.dataset.mode === m) b.classList.add('active'); else b.classList.remove('active'); }); }
+    let mult = localStorage.getItem('rdm_mult_v4');
+    if (mult) { activeMultiplier = parseInt(mult); updateMultiplierUI(); }
+  } catch(e) {}
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); quickJump(-1); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); quickJump(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); quickJump(-10); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); quickJump(10); }
+});
+
+// ── Map Data Browser ──────────────────────────────────────
+let mapDataOpen = false;
+let _mapListCache = null;
+
+function getMapList() {
+  if (_mapListCache) return _mapListCache;
+  let list = [], cur = null;
+  for (let i = 0; i < TILE_DATA.length; i++) {
+    let t = TILE_DATA[i];
+    if (!cur || t.m !== cur.name) {
+      if (cur) { cur.end = i; list.push(cur); }
+      cur = {name: t.m, start: i + 1, count: 0, cardCount: 0, bossCount: 0, warpCount: 0};
+    }
+    cur.count++;
+    if (t.c === 'CARD') cur.cardCount++;
+    if (t.c === 'BOSS') cur.bossCount++;
+    if (['WARP', 'WARP_BIG', 'WARP_SUPER', 'KING_WARP'].includes(t.c)) cur.warpCount++;
+  }
+  if (cur) { cur.end = TOTAL_TILES; list.push(cur); }
+  _mapListCache = list;
+  return list;
+}
+
+function toggleMapData() {
+  mapDataOpen = !mapDataOpen;
+  let body = document.getElementById('map-data-body');
+  let tog = document.getElementById('map-data-toggle');
+  if (mapDataOpen) { body.classList.add('open'); tog.classList.add('open'); renderMapDataTable(); }
+  else { body.classList.remove('open'); tog.classList.remove('open'); }
+}
+
+function renderMapDataTable(filter) {
+  let pos = getCurrentPos();
+  let list = getMapList();
+  let curMapName = TILE_DATA[pos - 1] && TILE_DATA[pos - 1].m;
+  if (filter) { let f = filter.toLowerCase(); list = list.filter(m => m.name.toLowerCase().includes(f)); }
+  document.getElementById('map-data-count').textContent = `共 ${list.length} 张地图`;
+  let html = '';
+  for (let i = 0; i < list.length; i++) {
+    let m = list[i];
+    let isCur = m.name === curMapName;
+    let cls = isCur ? 'current-map' : '';
+    html += `<tr class="${cls}" onclick="jumpToMap(${m.start})" title="点击跳转至第${m.start}格" style="cursor:pointer;">
+      <td>${i+1}</td><td>${m.name}</td><td class="num">${m.count}</td><td class="num">${m.start}~${m.end}</td>
+      <td class="num card-count">${m.cardCount}</td><td class="num boss-count">${m.bossCount||'—'}</td><td class="num warp-count">${m.warpCount}</td></tr>`;
+  }
+  document.getElementById('map-data-tbody').innerHTML = html;
+}
+
+function jumpToMap(startPos) {
+  document.getElementById('in-pos').value = startPos;
+  onPosChange();
+  document.getElementById('in-pos').focus();
+}
+
+function renderMapBrowser() {
+  if (mapDataOpen) renderMapDataTable();
+}
+
+function toggleDetail(id) {
+  let section = document.getElementById(id);
+  let header = section.querySelector('.detail-header');
+  let body = section.querySelector('.detail-body');
+  let isOpen = body.classList.contains('open');
+  if (isOpen) { body.classList.remove('open'); header.classList.remove('open'); }
+  else { body.classList.add('open'); header.classList.add('open'); }
+}
+
+// ── Init ──────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  loadState();
+  renderCardSlots();
+  updateTileStrip();
+  updateStageBar();
+  updateStrategyReport();
+});
+</script>
+</body>
+</html>
